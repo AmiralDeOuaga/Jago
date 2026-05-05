@@ -61,9 +61,32 @@ const villes = [
 ];
 const waLink     = (num, titre) => `https://wa.me/${num}?text=${encodeURIComponent(`Bonjour ! Je suis intéressé(e) par votre annonce "${titre}" sur YoMan!`)}`;
 
+// Compresse une image avant upload : max 1200px, qualité 82%, gain ~70% de taille
+function compressImage(file, maxPx = 1200, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width > height) { height = Math.round(height * maxPx / width); width = maxPx; }
+        else { width = Math.round(width * maxPx / height); height = maxPx; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(blob || file), "image/jpeg", quality);
+    };
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+}
+
 async function uploadToCloudinary(file) {
+  const compressed = await compressImage(file);
   const fd = new FormData();
-  fd.append("file", file);
+  fd.append("file", compressed);
   fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method:"POST", body:fd });
   const data = await res.json();
