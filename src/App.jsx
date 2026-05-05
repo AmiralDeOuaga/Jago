@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { db, auth } from "./firebase";
 import {
-  collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc, where, onSnapshot
+  collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc, where, onSnapshot, limit, startAfter
 } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
@@ -596,6 +596,10 @@ export default function YoMan() {
   const [user, setUser]           = useState(null);
   const [loading, setLoading]     = useState(true);
   const [annonces, setAnnonces]   = useState([]);
+  const [lastDoc, setLastDoc]     = useState(null);  // dernier doc chargé pour pagination
+  const [hasMore, setHasMore]     = useState(true);  // encore des annonces à charger
+  const [loadingMore, setLoadingMore] = useState(false);
+  const BATCH_SIZE = 50;
   const [authTab, setAuthTab]     = useState("login");
   const [page, setPage]           = useState("home");
   const [catActive, setCat]       = useState("tous");
@@ -676,17 +680,33 @@ export default function YoMan() {
     return unsub;
   }, []);
 
-  // Load annonces
+  // Charge le premier batch d'annonces (50 max)
   useEffect(() => {
     const load = async () => {
       try {
-        const q = query(collection(db, "annonces"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "annonces"), orderBy("createdAt", "desc"), limit(BATCH_SIZE));
         const snap = await getDocs(q);
         setAnnonces(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLastDoc(snap.docs[snap.docs.length - 1] || null);
+        setHasMore(snap.docs.length === BATCH_SIZE);
       } catch(e) { console.error(e); }
     };
     load();
   }, []);
+
+  // Charge le batch suivant (bouton "Voir plus")
+  const loadMore = async () => {
+    if (!lastDoc || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const q = query(collection(db, "annonces"), orderBy("createdAt", "desc"), startAfter(lastDoc), limit(BATCH_SIZE));
+      const snap = await getDocs(q);
+      setAnnonces(prev => [...prev, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))]);
+      setLastDoc(snap.docs[snap.docs.length - 1] || null);
+      setHasMore(snap.docs.length === BATCH_SIZE);
+    } catch(e) { console.error(e); }
+    setLoadingMore(false);
+  };
 
   // Load favoris
   useEffect(() => {
@@ -1567,6 +1587,15 @@ export default function YoMan() {
                   <button key={n} className={`page-btn${n===currentPage?" on":""}`} onClick={()=>{setCurrentPage(n);window.scrollTo({top:0,behavior:"smooth"});}}>{n}</button>
                 ))}
                 <button className="page-btn" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages}>›</button>
+              </div>
+            )}
+            {/* Bouton "Voir plus" — charge le batch suivant depuis Firestore */}
+            {hasMore && currentPage === totalPages && (
+              <div style={{display:"flex",justifyContent:"center",margin:"12px 0 32px"}}>
+                <button onClick={()=>{ loadMore(); }} disabled={loadingMore}
+                  style={{padding:"12px 32px",borderRadius:"50px",border:"1.5px solid rgba(23,86,200,.4)",background:"rgba(23,86,200,.1)",color:"#7ab3ff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Montserrat',sans-serif"}}>
+                  {loadingMore ? "Chargement…" : "Voir plus d'annonces"}
+                </button>
               </div>
             )}
           </>
