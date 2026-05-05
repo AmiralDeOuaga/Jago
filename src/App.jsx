@@ -11,6 +11,8 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   sendPasswordResetEmail
 } from "firebase/auth";
 
@@ -625,8 +627,25 @@ export default function YoMan() {
   // Favoris
   const [favoris, setFavoris] = useState([]);
 
-  // Auth listener
+  // Auth listener + récupération résultat redirect Google (mobile)
   useEffect(() => {
+    // Récupère le résultat si l'utilisateur revient d'un redirect Google
+    getRedirectResult(auth).then(async (cred) => {
+      if (cred?.user) {
+        const ref = doc(db, "users", cred.user.uid);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            uid: cred.user.uid,
+            nom: cred.user.displayName,
+            email: cred.user.email,
+            tel: "", whatsapp: "",
+            createdAt: serverTimestamp()
+          });
+        }
+      }
+    }).catch(() => {});
+
     const unsub = onAuthStateChanged(auth, u => {
       setUser(u);
       setLoading(false);
@@ -677,8 +696,15 @@ export default function YoMan() {
     setAuthErr(""); setSubmitting(true);
     try {
       const provider = new GoogleAuthProvider();
+      // Sur mobile (Capacitor WebView) les popups sont bloqués → redirect
+      const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) || window.Capacitor;
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+        // La page se recharge → le résultat est géré dans onAuthStateChanged via getRedirectResult
+        return;
+      }
+      // Sur desktop → popup classique
       const cred = await signInWithPopup(auth, provider);
-      // Save user info to Firestore if new
       const ref = doc(db, "users", cred.user.uid);
       const snap = await getDoc(ref);
       if (!snap.exists()) {
@@ -691,7 +717,7 @@ export default function YoMan() {
         });
       }
     } catch(e) {
-      setAuthErr("Erreur de connexion Google.");
+      setAuthErr("Erreur de connexion Google. Vérifie ta connexion internet.");
     }
     setSubmitting(false);
   };
@@ -712,7 +738,17 @@ export default function YoMan() {
     try {
       await signInWithEmailAndPassword(auth, lEmail, lPwd);
     } catch(e) {
-      setAuthErr("Email ou mot de passe incorrect.");
+      if (e.code === "auth/user-not-found" || e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") {
+        setAuthErr("Email ou mot de passe incorrect.");
+      } else if (e.code === "auth/too-many-requests") {
+        setAuthErr("Trop de tentatives. Réessaie dans quelques minutes.");
+      } else if (e.code === "auth/network-request-failed") {
+        setAuthErr("Pas de connexion internet. Vérifie ton réseau.");
+      } else if (e.code === "auth/user-disabled") {
+        setAuthErr("Ce compte a été désactivé.");
+      } else {
+        setAuthErr("Erreur de connexion. Réessaie.");
+      }
     }
     setSubmitting(false);
   };
@@ -723,13 +759,21 @@ export default function YoMan() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, rEmail, rPwd);
       await updateProfile(cred.user, { displayName: rNom });
-      // Save extra info to Firestore
-      await addDoc(collection(db, "users"), {
+      // Sauvegarde avec l'UID comme ID de document (setDoc au lieu de addDoc)
+      await setDoc(doc(db, "users", cred.user.uid), {
         uid: cred.user.uid, nom: rNom, email: rEmail,
         tel: rTel, whatsapp: rWa || rTel, createdAt: serverTimestamp()
       });
     } catch(e) {
-      setAuthErr(e.code === "auth/email-already-in-use" ? "Cet email est déjà utilisé." : "Erreur lors de l'inscription.");
+      if (e.code === "auth/email-already-in-use") {
+        setAuthErr("Cet email est déjà utilisé.");
+      } else if (e.code === "auth/weak-password") {
+        setAuthErr("Le mot de passe doit contenir au moins 6 caractères.");
+      } else if (e.code === "auth/network-request-failed") {
+        setAuthErr("Pas de connexion internet. Vérifie ton réseau.");
+      } else {
+        setAuthErr("Erreur lors de l'inscription. Réessaie.");
+      }
     }
     setSubmitting(false);
   };
