@@ -195,6 +195,9 @@ const styles = `
   .bottom-nav { display:none; }
   @media(max-width:767px){
     .bottom-nav { display:flex; position:fixed; bottom:0; left:0; right:0; background:rgba(13,21,38,.97); backdrop-filter:blur(16px); border-top:1px solid var(--border2); z-index:99; }
+    .hdr-mobile-hide { display:none !important; }
+    .hdr-in { padding:0 12px !important; min-height:52px !important; }
+    .btn-o { padding:6px 10px !important; font-size:15px !important; }
   }
   .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 4px 8px; cursor:pointer; border:none; background:transparent; font-family:'Montserrat',sans-serif; color:var(--muted); gap:3px; transition:color .2s; }
   .bnav-item.on { color:#4d90ff; }
@@ -654,30 +657,35 @@ export default function YoMan() {
   // Favoris
   const [favoris, setFavoris] = useState([]);
 
-  // Auth listener + récupération résultat redirect Google (mobile)
+  // Auth listener + récupération résultat redirect Google (web seulement)
   useEffect(() => {
-    // Récupère le résultat si l'utilisateur revient d'un redirect Google
-    getRedirectResult(auth).then(async (cred) => {
-      if (cred?.user) {
-        const ref = doc(db, "users", cred.user.uid);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          await setDoc(ref, {
-            uid: cred.user.uid,
-            nom: cred.user.displayName,
-            email: cred.user.email,
-            tel: "", whatsapp: "",
-            createdAt: serverTimestamp()
-          });
+    // getRedirectResult seulement sur le web (pas dans Capacitor)
+    const isCapacitor = !!(window.Capacitor);
+    if (!isCapacitor) {
+      getRedirectResult(auth).then(async (cred) => {
+        if (cred?.user) {
+          const ref = doc(db, "users", cred.user.uid);
+          const snap = await getDoc(ref);
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              uid: cred.user.uid,
+              nom: cred.user.displayName,
+              email: cred.user.email,
+              tel: "", whatsapp: "",
+              createdAt: serverTimestamp()
+            });
+          }
         }
-      }
-    }).catch(() => {});
+      }).catch(() => {});
+    }
 
+    const timeout = setTimeout(() => setLoading(false), 5000);
     const unsub = onAuthStateChanged(auth, u => {
+      clearTimeout(timeout);
       setUser(u);
       setLoading(false);
     });
-    return unsub;
+    return () => { unsub(); clearTimeout(timeout); };
   }, []);
 
   // Charge le premier batch d'annonces (50 max)
@@ -1075,12 +1083,12 @@ export default function YoMan() {
       </div>
       <div className="hdr-r">
         {user && <span className="huser">Salut, <strong>{user.displayName?.split(" ")[0]}</strong> 👋</span>}
-        {isAdmin && <button className="btn-o" style={{borderColor:"#7C3AED",color:"#a78bfa"}} onClick={()=>setPage("admin")}>🛡️ Admin</button>}
-        <button className="btn-o" style={{position:"relative"}} onClick={() => setPage("messages")}>
+        {isAdmin && <button className="btn-o" style={{borderColor:"#7C3AED",color:"#a78bfa"}} onClick={()=>setPage("admin")}>🛡️</button>}
+        <button className="btn-o hdr-mobile-hide" style={{position:"relative"}} onClick={() => setPage("messages")}>
           💬{unreadCount>0&&<span style={{position:"absolute",top:-4,right:-4,background:"var(--red)",color:"white",fontSize:9,fontWeight:800,width:16,height:16,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadCount}</span>}
         </button>
-        <button className="btn-o" onClick={() => setPage("profile")}>👤</button>
-        {showPost && <button className="btn-p" onClick={() => setPage("post")}>+ Annonce</button>}
+        <button className="btn-o hdr-mobile-hide" onClick={() => setPage("profile")}>👤</button>
+        {showPost && <button className="btn-p hdr-mobile-hide" onClick={() => setPage("post")}>+ Annonce</button>}
         <button className="btn-o" onClick={logout} title="Déconnexion">⏻</button>
       </div>
     </div></header>

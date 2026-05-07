@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond plein sans coins arrondis (Apple les ajoute) -->
+  <rect width="1024" height="1024" fill="#0F1F4E"/>
+
+  <!-- Yo en blanc centré légèrement à gauche -->
+  <text x="430" y="620" font-family="'Helvetica Neue', Arial Black, sans-serif" font-weight="900" font-size="520" fill="white" text-anchor="middle" letter-spacing="-8">Yo</text>
+
+  <!-- ! en jaune -->
+  <text x="840" y="620" font-family="'Helvetica Neue', Arial Black, sans-serif" font-weight="900" font-size="520" fill="#FFD93D" text-anchor="middle">!</text>
+</svg>

@@ -1,0 +1,9 @@
+{
+  "appId": "com.yoman.app",
+  "appName": "Yoman",
+  "webDir": "dist",
+  "ios": {
+    "allowsLinkPreview": false,
+    "limitsNavigationsToAppBoundDomains": true
+  }
+}

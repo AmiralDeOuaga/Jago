@@ -5,9 +5,24 @@ body {
   background: #182236;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 #root {
   width: 100%;
   min-height: 100svh;
+}
+
+/* iOS Safe Areas */
+.hdr {
+  padding-top: env(safe-area-inset-top) !important;
+}
+
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom) !important;
+}
+
+.app {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom)) !important;
 }

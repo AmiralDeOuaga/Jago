@@ -4,11 +4,38 @@ import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs'
 import path from 'path'
 
+function removeCrossorigin() {
+  return {
+    name: 'remove-crossorigin',
+    transformIndexHtml(html) {
+      return html
+        .replace(/ crossorigin="[^"]*"/g, '')
+        .replace(/ crossorigin/g, '');
+    }
+  };
+}
+
 export default defineConfig({
+  base: './',
+  build: {
+    target: 'es2015',
+    cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        format: 'iife',
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      }
+    }
+  },
   plugins: [
     react(),
+    removeCrossorigin(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
+      selfDestroying: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'YoMan - Marketplace Burkina Faso',
