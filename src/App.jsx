@@ -255,6 +255,7 @@ const styles = `
 
   /* ── CATÉGORIE TABS (scrollable) ── */
   .cat-tabs-wrap { overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; margin:0 -28px; padding:0 28px; }
+  @media(max-width:480px){ .cat-tabs-wrap{ margin:0 -16px; padding:0 16px; } }
   .cat-tabs-wrap::-webkit-scrollbar { display:none; }
   .cat-tabs { display:flex; gap:8px; padding:4px 0 14px; width:max-content; min-width:100%; }
   .cat-tab-item { display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:50px; border:1.5px solid var(--border2); background:var(--card); font-family:'Montserrat',sans-serif; font-size:12px; font-weight:700; color:var(--muted); cursor:pointer; transition:all .2s; white-space:nowrap; flex-shrink:0; }
