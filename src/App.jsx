@@ -170,6 +170,17 @@ const styles = `
   * { touch-action:manipulation; }
   .offline-banner { position:fixed; top:0; left:0; right:0; z-index:9999; background:#EF4444; color:#fff; text-align:center; padding:10px 16px; font-size:13px; font-weight:700; font-family:'Montserrat',sans-serif; display:flex; align-items:center; justify-content:center; gap:8px; }
   .offline-banner span { font-size:16px; }
+  .signal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .signal-box { background:var(--bg2); border-radius:20px; padding:24px; width:100%; max-width:400px; border:1px solid var(--border2); }
+  .signal-box h3 { font-family:'Montserrat',sans-serif; font-size:16px; font-weight:800; color:var(--text); margin:0 0 16px; }
+  .signal-options { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .signal-opt { display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:12px; border:1.5px solid var(--border2); cursor:pointer; transition:all .2s; }
+  .signal-opt.on { border-color:rgba(239,68,68,.6); background:rgba(239,68,68,.1); }
+  .signal-opt span { font-size:14px; color:var(--text); font-weight:600; }
+  .signal-btns { display:flex; gap:10px; }
+  .signal-cancel { flex:1; padding:12px; border-radius:12px; border:1.5px solid var(--border2); background:transparent; color:var(--muted); font-weight:700; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:13px; }
+  .signal-submit { flex:1; padding:12px; border-radius:12px; border:none; background:#EF4444; color:#fff; font-weight:800; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:13px; }
+  .signal-submit:disabled { opacity:.4; cursor:not-allowed; }
   .app { min-height:100vh; padding-bottom:72px; }
   @media(min-width:768px){ .app{ padding-bottom:0; } }
 
@@ -634,6 +645,8 @@ export default function YoMan() {
   const [editAd, setEditAd] = useState(null);
   const [adminTab, setAdminTab] = useState("annonces");
   const [signalements, setSignalements] = useState([]);
+  const [signalModal, setSignalModal] = useState(null); // annonce à signaler
+  const [signalRaison, setSignalRaison] = useState("");
   const [allUsers, setAllUsers] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [myRating, setMyRating] = useState(0);
@@ -1026,17 +1039,19 @@ export default function YoMan() {
 
   const logout = () => { signOut(auth); setPage("home"); setFavoris([]); };
 
-  const reportAd = async (a) => {
-    const raison = window.prompt("Pourquoi signalez-vous cette annonce ?\n\n1. Fausse annonce\n2. Prix abusif\n3. Contenu inapproprié\n4. Arnaque\n\nEcrivez votre raison :");
-    if (!raison) return;
+  const reportAd = (a) => { setSignalModal(a); setSignalRaison(""); };
+
+  const submitReport = async () => {
+    if (!signalRaison) return;
     try {
       await addDoc(collection(db, "signalements"), {
-        annonceId: a.id, titre: a.titre,
-        signalePar: user.uid, raison,
+        annonceId: signalModal.id, titre: signalModal.titre,
+        signalePar: user.uid, raison: signalRaison,
         createdAt: serverTimestamp()
       });
-      alert("✅ Annonce signalée ! Notre équipe va examiner ça.");
-    } catch(e) { alert("Erreur : " + e.message); }
+      setSignalModal(null);
+      setSignalRaison("");
+    } catch(e) { console.error(e); }
   };
 
   const openAd = async (a) => {
@@ -1124,6 +1139,25 @@ export default function YoMan() {
   const OfflineBanner = () => !isOnline ? (
     <div className="offline-banner">
       <span>📵</span> Pas de connexion internet — certaines fonctions sont indisponibles
+    </div>
+  ) : null;
+
+  const SignalModal = () => signalModal ? (
+    <div className="signal-overlay" onClick={()=>setSignalModal(null)}>
+      <div className="signal-box" onClick={e=>e.stopPropagation()}>
+        <h3>🚩 Signaler cette annonce</h3>
+        <div className="signal-options">
+          {["Fausse annonce","Prix abusif","Contenu inapproprié","Arnaque","Autre"].map(r=>(
+            <div key={r} className={`signal-opt${signalRaison===r?" on":""}`} onClick={()=>setSignalRaison(r)}>
+              <span>{r}</span>
+            </div>
+          ))}
+        </div>
+        <div className="signal-btns">
+          <button className="signal-cancel" onClick={()=>setSignalModal(null)}>Annuler</button>
+          <button className="signal-submit" onClick={submitReport} disabled={!signalRaison}>Signaler</button>
+        </div>
+      </div>
     </div>
   ) : null;
 
@@ -1436,6 +1470,7 @@ export default function YoMan() {
 
   // HOME
   return (<><style>{styles}</style>
+    <OfflineBanner/><SignalModal/>
     <div className="app"><Header/>
       {/* ── HERO ── */}
       <section className="hero">
