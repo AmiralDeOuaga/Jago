@@ -1503,31 +1503,6 @@ export default function YoMan() {
           <button onClick={()=>{setSearch(searchInput);setCurrentPage(1);}}>Chercher</button>
         </div>
         {/* Raccourcis catégories */}
-        <div className="hero-cats">
-          {categories.slice(0,6).map(c=>(
-            <button key={c.id} className="hero-cat" onClick={()=>{setCat(c.id);setCurrentPage(1);document.querySelector(".sec")?.scrollIntoView({behavior:"smooth"});}}>
-              {c.icon} {c.label}
-            </button>
-          ))}
-        </div>
-        <div className="hero-stats">
-          <div className="hero-stat">
-            <div className="stn">{annonces.length || "0"}</div>
-            <div className="stl">Annonces</div>
-          </div>
-          <div className="hero-stat">
-            <div className="stn">{[...new Set(annonces.map(a=>a.ville))].length || villes.length}</div>
-            <div className="stl">Villes</div>
-          </div>
-          <div className="hero-stat">
-            <div className="stn">{categories.length}</div>
-            <div className="stl">Catégories</div>
-          </div>
-          <div className="hero-stat">
-            <div className="stn">0%</div>
-            <div className="stl">Commission</div>
-          </div>
-        </div>
       </section>
 
       <div className="sec">
