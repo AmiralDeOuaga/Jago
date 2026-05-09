@@ -431,8 +431,9 @@ const styles = `
   /* PLEIN ÉCRAN */
   .fullscreen-overlay { position:fixed; inset:0; background:rgba(0,0,0,.97); z-index:9999; display:flex; align-items:center; justify-content:center; cursor:zoom-out; }
   .fullscreen-img { max-width:100vw; max-height:100vh; object-fit:contain; }
-  .fullscreen-close { position:fixed; top:18px; right:22px; color:white; font-size:32px; cursor:pointer; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; z-index:10000; transition:background .2s; }
+  .fullscreen-close { position:fixed; top:54px; right:20px; color:white; font-size:20px; font-weight:900; cursor:pointer; background:rgba(0,0,0,.7); border:2px solid rgba(255,255,255,.6); border-radius:50%; width:52px; height:52px; display:flex; align-items:center; justify-content:center; z-index:10000; transition:background .2s; backdrop-filter:blur(8px); box-shadow:0 4px 20px rgba(0,0,0,.5); }
   .fullscreen-close:hover { background:rgba(255,255,255,.2); }
+  .fullscreen-hint { position:fixed; bottom:40px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,.5); font-size:12px; font-family:'Montserrat',sans-serif; z-index:10000; }
 
   /* ── PROFILE ── */
   .profscreen { max-width:740px; margin:32px auto; padding:0 20px 60px; }
@@ -1694,6 +1695,7 @@ export default function YoMan() {
       {fullscreen && (
         <div className="fullscreen-overlay" onClick={() => setFullscreen(null)}>
           <button className="fullscreen-close" onClick={() => setFullscreen(null)}>✕</button>
+          <div className="fullscreen-hint">Appuie n'importe où pour fermer</div>
           <img src={fullscreen.photos[fullscreen.idx]} alt="" className="fullscreen-img" onClick={e=>e.stopPropagation()}/>
           {fullscreen.photos.length > 1 && <>
             <button onClick={e=>{e.stopPropagation();setFullscreen(f=>({...f,idx:(f.idx-1+f.photos.length)%f.photos.length}))}} style={{position:"fixed",left:16,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.2)",color:"white",border:"none",borderRadius:"50%",width:48,height:48,fontSize:26,cursor:"pointer",zIndex:10000}}>‹</button>
