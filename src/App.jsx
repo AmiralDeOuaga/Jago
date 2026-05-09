@@ -168,6 +168,8 @@ const styles = `
   }
   body { font-family:'Inter','Nunito',sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; touch-action:manipulation; }
   * { touch-action:manipulation; }
+  .offline-banner { position:fixed; top:0; left:0; right:0; z-index:9999; background:#EF4444; color:#fff; text-align:center; padding:10px 16px; font-size:13px; font-weight:700; font-family:'Montserrat',sans-serif; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .offline-banner span { font-size:16px; }
   .app { min-height:100vh; padding-bottom:72px; }
   @media(min-width:768px){ .app{ padding-bottom:0; } }
 
@@ -601,6 +603,7 @@ function ModalImage({ annonce, onFullscreen }) {
 export default function YoMan() {
   const [user, setUser]           = useState(null);
   const [loading, setLoading]     = useState(true);
+  const [isOnline, setIsOnline]   = useState(navigator.onLine);
   const [annonces, setAnnonces]   = useState([]);
   const [lastDoc, setLastDoc]     = useState(null);  // dernier doc chargé pour pagination
   const [hasMore, setHasMore]     = useState(true);  // encore des annonces à charger
@@ -659,6 +662,18 @@ export default function YoMan() {
 
   // Favoris
   const [favoris, setFavoris] = useState([]);
+
+  // Détection connexion réseau
+  useEffect(() => {
+    const handleOnline  = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online",  handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online",  handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Auth listener + récupération résultat redirect Google (web seulement)
   useEffect(() => {
@@ -1106,8 +1121,15 @@ export default function YoMan() {
 
   if (loading) return <div className="loading">⏳</div>;
 
+  const OfflineBanner = () => !isOnline ? (
+    <div className="offline-banner">
+      <span>📵</span> Pas de connexion internet — certaines fonctions sont indisponibles
+    </div>
+  ) : null;
+
   // AUTH
   if (!user) return (<><style>{styles}</style>
+    <OfflineBanner/>
     <div className="auth-wrap"><div className="auth-box">
       <div className="auth-logo-wrap"><YoManLogo variant="color" height={56}/></div>
       <div className="tabs">
@@ -1143,6 +1165,7 @@ export default function YoMan() {
 
   // POST
   if (page === "post") return (<><style>{styles}</style>
+    <OfflineBanner/>
     <div className="app"><Header showPost={false}/>
       <div className="pscreen">
         <button className="pback" onClick={() => setPage("home")}>← Retour</button>
@@ -1173,6 +1196,7 @@ export default function YoMan() {
 
   // PROFILE
   if (page === "profile") return (<><style>{styles}</style>
+    <OfflineBanner/>
     <div className="app"><Header/>
       <div className="profscreen">
         <button className="pback" onClick={() => setPage("home")}>← Retour</button>
@@ -1348,6 +1372,7 @@ export default function YoMan() {
 
   // MESSAGES
   if (page === "messages") return (<><style>{styles}</style>
+    <OfflineBanner/>
     <div className="app"><Header/>
       {!activeConv ? (
         // Liste des conversations
