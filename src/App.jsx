@@ -181,6 +181,11 @@ const styles = `
   .signal-cancel { flex:1; padding:12px; border-radius:12px; border:1.5px solid var(--border2); background:transparent; color:var(--muted); font-weight:700; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:13px; }
   .signal-submit { flex:1; padding:12px; border-radius:12px; border:none; background:#EF4444; color:#fff; font-weight:800; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:13px; }
   .signal-submit:disabled { opacity:.4; cursor:not-allowed; }
+  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--bg2); color:var(--text); padding:13px 20px; border-radius:14px; font-size:13px; font-weight:700; font-family:'Montserrat',sans-serif; z-index:9998; box-shadow:0 8px 32px rgba(0,0,0,.5); border:1.5px solid var(--border2); white-space:nowrap; animation:toastIn .25s ease; }
+  .toast.success { border-color:rgba(34,197,94,.4); }
+  .toast.error { border-color:rgba(239,68,68,.4); color:#f87171; }
+  .toast.warn { border-color:rgba(234,179,8,.4); color:#fde047; }
+  @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
   .app { min-height:100vh; padding-bottom:72px; }
   @media(min-width:768px){ .app{ padding-bottom:0; } }
 
@@ -541,7 +546,7 @@ function PhotoUploader({ photos, setPhotos }) {
     try {
       const urls = await Promise.all(toUpload.map(f => uploadToCloudinary(f)));
       setPhotos(p => [...p, ...urls]);
-    } catch (err) { alert("Erreur upload : " + err.message); }
+    } catch (err) { showToast("Erreur upload : " + err.message, "error"); }
     setUploading(false);
     e.target.value = "";
   };
@@ -645,8 +650,13 @@ export default function YoMan() {
   const [editAd, setEditAd] = useState(null);
   const [adminTab, setAdminTab] = useState("annonces");
   const [signalements, setSignalements] = useState([]);
-  const [signalModal, setSignalModal] = useState(null); // annonce à signaler
+  const [signalModal, setSignalModal] = useState(null);
   const [signalRaison, setSignalRaison] = useState("");
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type="success") => {
+    setToast({msg, type});
+    setTimeout(() => setToast(null), 3500);
+  };
   const [allUsers, setAllUsers] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [myRating, setMyRating] = useState(0);
@@ -812,7 +822,7 @@ export default function YoMan() {
     try {
       await sendPasswordResetEmail(auth, lEmail);
       setAuthErr("");
-      alert(`✅ Un email de réinitialisation a été envoyé à ${lEmail}`);
+      showToast(`📧 Email envoyé à ${lEmail}`);
     } catch(e) {
       setAuthErr("Email introuvable. Vérifie l'adresse saisie.");
     }
@@ -885,7 +895,7 @@ export default function YoMan() {
         a.createdAt.toDate() > uneSemaine
       );
       if (annoncesUrgentes.length >= 1 && !editAd) {
-        alert("⚠️ Vous avez déjà utilisé votre annonce urgente gratuite cette semaine. Revenez dans 7 jours !");
+        showToast("Annonce urgente déjà utilisée cette semaine. Revenez dans 7 jours !", "warn");
         return;
       }
     }
@@ -922,7 +932,7 @@ export default function YoMan() {
         setPostOk(true);
         setTimeout(() => { setPostOk(false); setPage("home"); }, 2000);
       }
-    } catch(e) { alert("Erreur : " + e.message); }
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
     setSubmitting(false);
   };
 
@@ -1000,8 +1010,8 @@ export default function YoMan() {
   };
 
   const submitRating = async (sellerId) => {
-    if (!myRating) { alert("Veuillez choisir une note !"); return; }
-    if (sellerId === user.uid) { alert("Vous ne pouvez pas vous noter vous-même !"); return; }
+    if (!myRating) { showToast("Veuillez choisir une note !", "warn"); return; }
+    if (sellerId === user.uid) { showToast("Vous ne pouvez pas vous noter vous-même !", "warn"); return; }
     try {
       const existing = ratings.find(r => r.buyerId === user.uid);
       if (existing) {
@@ -1013,8 +1023,8 @@ export default function YoMan() {
         setRatings(p => [{ id: ref.id, ...newR }, ...p]);
       }
       setMyRating(0); setMyComment("");
-      alert("✅ Merci pour votre avis !");
-    } catch(e) { alert("Erreur : " + e.message); }
+      showToast("✅ Merci pour votre avis !");
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
   const avgRating = (rList) => {
@@ -1027,14 +1037,14 @@ export default function YoMan() {
     try {
       await deleteDoc(doc(db, "annonces", id));
       setAnnonces(p => p.filter(a => a.id !== id));
-    } catch(e) { alert("Erreur : " + e.message); }
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
   const adminDeleteSignalement = async (id) => {
     try {
       await deleteDoc(doc(db, "signalements", id));
       setSignalements(p => p.filter(s => s.id !== id));
-    } catch(e) { alert("Erreur : " + e.message); }
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
   const logout = () => { signOut(auth); setPage("home"); setFavoris([]); };
@@ -1078,7 +1088,7 @@ export default function YoMan() {
     try {
       await deleteDoc(doc(db, "annonces", id));
       setAnnonces(p => p.filter(a => a.id !== id));
-    } catch(e) { alert("Erreur : " + e.message); }
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
   const myAds = annonces.filter(a => a.userId === user?.uid);
@@ -1142,6 +1152,10 @@ export default function YoMan() {
     </div>
   ) : null;
 
+  const Toast = () => toast ? (
+    <div className={`toast ${toast.type}`}>{toast.msg}</div>
+  ) : null;
+
   const SignalModal = () => signalModal ? (
     <div className="signal-overlay" onClick={()=>setSignalModal(null)}>
       <div className="signal-box" onClick={e=>e.stopPropagation()}>
@@ -1163,7 +1177,7 @@ export default function YoMan() {
 
   // AUTH
   if (!user) return (<><style>{styles}</style>
-    <OfflineBanner/>
+    <OfflineBanner/><Toast/>
     <div className="auth-wrap"><div className="auth-box">
       <div className="auth-logo-wrap"><YoManLogo variant="color" height={56}/></div>
       <div className="tabs">
@@ -1199,7 +1213,7 @@ export default function YoMan() {
 
   // POST
   if (page === "post") return (<><style>{styles}</style>
-    <OfflineBanner/>
+    <OfflineBanner/><Toast/>
     <div className="app"><Header showPost={false}/>
       <div className="pscreen">
         <button className="pback" onClick={() => setPage("home")}>← Retour</button>
@@ -1230,7 +1244,7 @@ export default function YoMan() {
 
   // PROFILE
   if (page === "profile") return (<><style>{styles}</style>
-    <OfflineBanner/>
+    <OfflineBanner/><Toast/>
     <div className="app"><Header/>
       <div className="profscreen">
         <button className="pback" onClick={() => setPage("home")}>← Retour</button>
@@ -1406,7 +1420,7 @@ export default function YoMan() {
 
   // MESSAGES
   if (page === "messages") return (<><style>{styles}</style>
-    <OfflineBanner/>
+    <OfflineBanner/><Toast/>
     <div className="app"><Header/>
       {!activeConv ? (
         // Liste des conversations
@@ -1470,7 +1484,7 @@ export default function YoMan() {
 
   // HOME
   return (<><style>{styles}</style>
-    <OfflineBanner/><SignalModal/>
+    <OfflineBanner/><SignalModal/><Toast/>
     <div className="app"><Header/>
       {/* ── HERO ── */}
       <section className="hero">
