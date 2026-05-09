@@ -165,7 +165,8 @@ const styles = `
     --green:#22C55E; --red:#EF4444;
     --radius:16px; --card-radius:20px;
   }
-  body { font-family:'Inter','Nunito',sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; }
+  body { font-family:'Inter','Nunito',sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; touch-action:manipulation; }
+  * { touch-action:manipulation; }
   .app { min-height:100vh; padding-bottom:72px; }
   @media(min-width:768px){ .app{ padding-bottom:0; } }
 
