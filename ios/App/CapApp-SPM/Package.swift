@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.3.1"),
-        .package(name: "CapacitorPushNotifications", path: "../../../node_modules/@capacitor/push-notifications"),
+        .package(name: "CapacitorPushNotifications", path: "../../LocalPackages/push-notifications"),
         .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")
     ],
     targets: [

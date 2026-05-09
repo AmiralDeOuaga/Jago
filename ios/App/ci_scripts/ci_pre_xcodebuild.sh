@@ -24,16 +24,41 @@ npm run build
 # Sync to iOS
 npx cap sync ios
 
-# Re-add GoogleSignIn-iOS to Package.swift (cap sync overwrites it)
+# Restore Package.swift with local vendored packages + GoogleSignIn-iOS
+# (cap sync overwrites Package.swift with node_modules paths)
 PACKAGE_SWIFT="$CI_PRIMARY_REPOSITORY_PATH/ios/App/CapApp-SPM/Package.swift"
-if ! grep -q "GoogleSignIn-iOS" "$PACKAGE_SWIFT"; then
-  echo "Re-adding GoogleSignIn-iOS and fixing Package.swift..."
 
-  # Add GoogleSignIn-iOS dependency after the last .package line
-  sed -i '' 's|.package(name: "CapacitorPushNotifications", path: "../../../node_modules/@capacitor/push-notifications")|.package(name: "CapacitorPushNotifications", path: "../../../node_modules/@capacitor/push-notifications"),\n        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")|' "$PACKAGE_SWIFT"
+echo "Restoring Package.swift with vendored packages..."
+cat > "$PACKAGE_SWIFT" << 'PKGEOF'
+// swift-tools-version: 5.9
+import PackageDescription
 
-  # Add GoogleSignIn product after CapacitorPushNotifications product
-  sed -i '' 's|.product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications")|.product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),\n                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")|' "$PACKAGE_SWIFT"
+// DO NOT MODIFY THIS FILE - managed by Capacitor CLI commands
+let package = Package(
+    name: "CapApp-SPM",
+    platforms: [.iOS(.v15)],
+    products: [
+        .library(
+            name: "CapApp-SPM",
+            targets: ["CapApp-SPM"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.3.1"),
+        .package(name: "CapacitorPushNotifications", path: "../../LocalPackages/push-notifications"),
+        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")
+    ],
+    targets: [
+        .target(
+            name: "CapApp-SPM",
+            dependencies: [
+                .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                .product(name: "Cordova", package: "capacitor-swift-pm"),
+                .product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),
+                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
+            ]
+        )
+    ]
+)
+PKGEOF
 
-  echo "Package.swift updated with GoogleSignIn-iOS"
-fi
+echo "Package.swift restored successfully"
