@@ -47,6 +47,15 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.515991232927-olc8ph973obek3fssl2se7ed165ao314</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Yoman a besoin d'accéder à votre caméra pour prendre des photos de vos annonces.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import WebKit
+import GoogleSignIn
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,6 +9,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Configure Google Sign-In
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(
+            clientID: "515991232927-olc8ph973obek3fssl2se7ed165ao314.apps.googleusercontent.com"
+        )
         // Fond sombre immédiat pour éviter le flash blanc
         DispatchQueue.main.async {
             self.window?.backgroundColor = UIColor(red: 0.059, green: 0.122, blue: 0.306, alpha: 1.0)
@@ -58,8 +63,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Called when the app was launched with a url. Feel free to add additional processing here,
-        // but if you want the App API to support tracking app url opens, make sure to keep this call
+        if GIDSignIn.sharedInstance.handle(url) {
+            return true
+        }
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 

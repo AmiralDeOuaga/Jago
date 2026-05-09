@@ -11,6 +11,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   signInWithRedirect,
   getRedirectResult,
   sendPasswordResetEmail
@@ -748,28 +749,31 @@ export default function YoMan() {
   const loginGoogle = async () => {
     setAuthErr(""); setSubmitting(true);
     try {
-      const provider = new GoogleAuthProvider();
-      // Sur mobile (Capacitor WebView) les popups sont bloqués → redirect
-      const isMobile = /android|iphone|ipad/i.test(navigator.userAgent) || window.Capacitor;
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
-        // La page se recharge → le résultat est géré dans onAuthStateChanged via getRedirectResult
-        return;
+      const isCapacitor = !!(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform === "ios" || window.Capacitor?.platform === "android");
+      let firebaseCred;
+      if (isCapacitor) {
+        // Plugin natif iOS via SPM
+        const { GoogleSignInPlugin } = window.Capacitor.Plugins;
+        const result = await GoogleSignInPlugin.signIn();
+        firebaseCred = await signInWithCredential(auth, GoogleAuthProvider.credential(result.idToken));
+      } else {
+        // Sur desktop → popup classique
+        const provider = new GoogleAuthProvider();
+        firebaseCred = await signInWithPopup(auth, provider);
       }
-      // Sur desktop → popup classique
-      const cred = await signInWithPopup(auth, provider);
-      const ref = doc(db, "users", cred.user.uid);
+      const ref = doc(db, "users", firebaseCred.user.uid);
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         await setDoc(ref, {
-          uid: cred.user.uid,
-          nom: cred.user.displayName,
-          email: cred.user.email,
+          uid: firebaseCred.user.uid,
+          nom: firebaseCred.user.displayName,
+          email: firebaseCred.user.email,
           tel: "", whatsapp: "",
           createdAt: serverTimestamp()
         });
       }
     } catch(e) {
+      console.error("Google login error:", e);
       setAuthErr("Erreur de connexion Google. Vérifie ta connexion internet.");
     }
     setSubmitting(false);
