@@ -730,6 +730,51 @@ export default function YoMan() {
     return () => { unsub(); clearTimeout(timeout); };
   }, []);
 
+  // Push Notifications (iOS natif uniquement)
+  useEffect(() => {
+    if (!user) return;
+    const isNative = !!(window.Capacitor?.isNativePlatform?.());
+    if (!isNative) return;
+
+    const initPush = async () => {
+      try {
+        const { PushNotifications } = await import("@capacitor/push-notifications");
+
+        // Demander la permission
+        const perm = await PushNotifications.requestPermissions();
+        if (perm.receive !== "granted") return;
+
+        await PushNotifications.register();
+
+        // Sauvegarder le token FCM dans Firestore
+        PushNotifications.addListener("registration", async (token) => {
+          try {
+            await updateDoc(doc(db, "users", user.uid), { fcmToken: token.value });
+          } catch (e) {
+            await setDoc(doc(db, "users", user.uid), { fcmToken: token.value }, { merge: true });
+          }
+        });
+
+        // Notification reçue en foreground → afficher un toast
+        PushNotifications.addListener("pushNotificationReceived", (notification) => {
+          showToast(`💬 ${notification.title}: ${notification.body}`, "info");
+        });
+
+        // Notification tappée → naviguer vers les messages
+        PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+          const data = action.notification.data;
+          if (data?.page === "messages") {
+            setPage("messages");
+          }
+        });
+      } catch (e) {
+        console.log("Push notifications non disponibles:", e);
+      }
+    };
+
+    initPush();
+  }, [user]);
+
   // Charge le premier batch d'annonces (50 max)
   useEffect(() => {
     const load = async () => {

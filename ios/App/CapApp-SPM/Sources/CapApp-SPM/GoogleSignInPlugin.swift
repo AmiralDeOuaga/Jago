@@ -12,7 +12,7 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func signIn(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
-            guard let viewController = self.bridge?.viewController else {
+            guard let viewController = self.bridge?.viewController as UIViewController? else {
                 call.reject("No view controller available")
                 return
             }

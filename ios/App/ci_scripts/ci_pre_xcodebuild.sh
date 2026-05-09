@@ -27,8 +27,13 @@ npx cap sync ios
 # Re-add GoogleSignIn-iOS to Package.swift (cap sync overwrites it)
 PACKAGE_SWIFT="$CI_PRIMARY_REPOSITORY_PATH/ios/App/CapApp-SPM/Package.swift"
 if ! grep -q "GoogleSignIn-iOS" "$PACKAGE_SWIFT"; then
-  echo "Re-adding GoogleSignIn-iOS to Package.swift..."
-  sed -i '' 's|.package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.3.1")|.package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.3.1"),\n        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")|' "$PACKAGE_SWIFT"
-  sed -i '' 's|.product(name: "Cordova", package: "capacitor-swift-pm")|.product(name: "Cordova", package: "capacitor-swift-pm"),\n                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")|' "$PACKAGE_SWIFT"
+  echo "Re-adding GoogleSignIn-iOS and fixing Package.swift..."
+
+  # Add GoogleSignIn-iOS dependency after the last .package line
+  sed -i '' 's|.package(name: "CapacitorPushNotifications", path: "../../../node_modules/@capacitor/push-notifications")|.package(name: "CapacitorPushNotifications", path: "../../../node_modules/@capacitor/push-notifications"),\n        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")|' "$PACKAGE_SWIFT"
+
+  # Add GoogleSignIn product after CapacitorPushNotifications product
+  sed -i '' 's|.product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications")|.product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),\n                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")|' "$PACKAGE_SWIFT"
+
   echo "Package.swift updated with GoogleSignIn-iOS"
 fi
