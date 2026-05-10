@@ -415,10 +415,21 @@ export default function YoMan() {
         const { PushNotifications } = await import("@capacitor/push-notifications");
         const perm = await PushNotifications.requestPermissions();
         if (perm.receive !== "granted") return;
-        await PushNotifications.register();
+
+        // Ajouter les listeners AVANT register() pour ne pas rater l'event
         PushNotifications.addListener("registration", async (token) => {
-          try { await updateDoc(doc(db, "users", user.uid), { apnsToken: token.value }); }
-          catch (e) { await setDoc(doc(db, "users", user.uid), { apnsToken: token.value }, { merge: true }); }
+          console.log("APNs token reçu:", token.value);
+          try {
+            await updateDoc(doc(db, "users", user.uid), { apnsToken: token.value });
+            console.log("apnsToken sauvegardé avec updateDoc");
+          } catch (e) {
+            console.log("updateDoc échoué, essai setDoc:", e);
+            await setDoc(doc(db, "users", user.uid), { apnsToken: token.value }, { merge: true });
+            console.log("apnsToken sauvegardé avec setDoc");
+          }
+        });
+        PushNotifications.addListener("registrationError", (err) => {
+          console.error("Erreur d'enregistrement push:", JSON.stringify(err));
         });
         PushNotifications.addListener("pushNotificationReceived", (notification) => {
           showToast(`💬 ${notification.title}: ${notification.body}`, "info");
@@ -427,6 +438,8 @@ export default function YoMan() {
           const data = action.notification.data;
           if (data?.page === "messages") setPage("messages");
         });
+
+        await PushNotifications.register();
       } catch (e) { console.log("Push notifications non disponibles:", e); }
     };
     initPush();
