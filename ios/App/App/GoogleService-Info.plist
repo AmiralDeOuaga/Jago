@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>515991232927-a3isfnhmt0ism1rhsn8g0l3stlail513.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.515991232927-a3isfnhmt0ism1rhsn8g0l3stlail513</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA0nNFj90tgOihrLupG7g8DzQp6uGeYABc</string>
+	<key>GCM_SENDER_ID</key>
+	<string>515991232927</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.yoman.app</string>
+	<key>PROJECT_ID</key>
+	<string>yoman-d45bf</string>
+	<key>STORAGE_BUCKET</key>
+	<string>yoman-d45bf.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:515991232927:ios:313c401cedb51ab6435daa</string>
+</dict>
+</plist>

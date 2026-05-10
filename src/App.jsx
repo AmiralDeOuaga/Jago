@@ -746,12 +746,12 @@ export default function YoMan() {
 
         await PushNotifications.register();
 
-        // Sauvegarder le token FCM dans Firestore
+        // Sauvegarder le token APNs dans Firestore
         PushNotifications.addListener("registration", async (token) => {
           try {
-            await updateDoc(doc(db, "users", user.uid), { fcmToken: token.value });
+            await updateDoc(doc(db, "users", user.uid), { apnsToken: token.value });
           } catch (e) {
-            await setDoc(doc(db, "users", user.uid), { fcmToken: token.value }, { merge: true });
+            await setDoc(doc(db, "users", user.uid), { apnsToken: token.value }, { merge: true });
           }
         });
 
