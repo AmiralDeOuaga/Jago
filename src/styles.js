@@ -48,7 +48,7 @@ export const styles = `
   .nav-search input::placeholder { color:var(--muted); }
   .nav-search button { background:var(--gold); color:var(--dark); border:none; padding:10px 18px; font-size:13px; font-weight:800; font-family:'Montserrat',sans-serif; transition:background .2s; flex-shrink:0; cursor:pointer; }
   .nav-search button:hover { background:#FFC800; }
-  @media(max-width:900px){ .nav-search{ display:none !important; } }
+  @media(max-width:1100px){ .nav-search{ display:none !important; } }
   .btn-p { background:var(--gold); color:var(--dark); border:none; border-radius:10px; padding:9px 16px; font-size:13px; font-weight:800; cursor:pointer; font-family:'Montserrat',sans-serif; transition:all .2s; white-space:nowrap; }
   .btn-p:hover { background:#FFC800; box-shadow:0 4px 20px rgba(255,217,61,.3); }
   .btn-o { background:var(--card); color:var(--text); border:1.5px solid var(--border2); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; transition:all .2s; white-space:nowrap; position:relative; }
