@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithCredential,
   getRedirectResult,
@@ -91,6 +92,49 @@ export function useAuth(showToast) {
     setSubmitting(false);
   };
 
+  const loginApple = async () => {
+    setAuthErr(""); setSubmitting(true);
+    try {
+      const isCapacitor = !!(window.Capacitor?.isNativePlatform?.());
+      let firebaseCred;
+      if (isCapacitor) {
+        const { SignInWithApple } = window.Capacitor.Plugins;
+        const result = await SignInWithApple.authorize({ scopes: "name email" });
+        const r = result.response;
+        const provider = new OAuthProvider("apple.com");
+        const credential = provider.credential({
+          idToken: r.identityToken,
+          rawNonce: r.nonce,
+        });
+        firebaseCred = await signInWithCredential(auth, credential);
+      } else {
+        const provider = new OAuthProvider("apple.com");
+        provider.addScope("email");
+        provider.addScope("name");
+        firebaseCred = await signInWithPopup(auth, provider);
+      }
+      const ref = doc(db, "users", firebaseCred.user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        const displayName = firebaseCred.user.displayName ||
+          (firebaseCred.user.providerData[0]?.displayName) || "Utilisateur Apple";
+        await setDoc(ref, {
+          uid: firebaseCred.user.uid,
+          nom: displayName,
+          email: firebaseCred.user.email || "",
+          tel: "", whatsapp: "",
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch(e) {
+      console.error("Apple login error:", e);
+      if (e.code !== "ERR_CANCELED" && e.message !== "The operation was canceled.") {
+        setAuthErr("Erreur de connexion Apple. Réessaie.");
+      }
+    }
+    setSubmitting(false);
+  };
+
   const forgotPassword = async () => {
     if (!lEmail) { setAuthErr("Entre ton email pour réinitialiser ton mot de passe."); return; }
     try {
@@ -165,6 +209,7 @@ export function useAuth(showToast) {
     rWa, setRWa,
     rPwd, setRPwd,
     loginGoogle,
+    loginApple,
     forgotPassword,
     login,
     register,

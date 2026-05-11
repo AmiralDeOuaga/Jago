@@ -17,5 +17,8 @@
 			"iosClientId": "515991232927-olc8ph973obek3fssl2se7ed165ao314.apps.googleusercontent.com"
 		}
 	},
-	"packageClassList": []
+	"packageClassList": [
+		"SignInWithApple",
+		"PushNotificationsPlugin"
+	]
 }
