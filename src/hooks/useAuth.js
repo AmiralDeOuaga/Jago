@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signInWithCredential,
   getRedirectResult,
   sendPasswordResetEmail
@@ -31,10 +32,11 @@ export function useAuth(showToast) {
   const [rWa, setRWa]       = useState("");
   const [rPwd, setRPwd]     = useState("");
 
-  // Auth listener + récupération résultat redirect Google (web seulement)
+  // Auth listener + récupération résultat redirect Google (web + Android)
   useEffect(() => {
-    const isCapacitor = !!(window.Capacitor);
-    if (!isCapacitor) {
+    const platform = window.Capacitor?.getPlatform?.() || window.Capacitor?.platform || "web";
+    // iOS natif gère le résultat directement — pas besoin de redirect
+    if (platform !== "ios") {
       getRedirectResult(auth).then(async (cred) => {
         if (cred?.user) {
           const ref = doc(db, "users", cred.user.uid);
@@ -64,26 +66,40 @@ export function useAuth(showToast) {
   const loginGoogle = async () => {
     setAuthErr(""); setSubmitting(true);
     try {
-      const isCapacitor = !!(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform === "ios" || window.Capacitor?.platform === "android");
+      const platform = window.Capacitor?.getPlatform?.() || window.Capacitor?.platform || "web";
       let firebaseCred;
-      if (isCapacitor) {
+
+      if (platform === "ios") {
+        // iOS natif — plugin Swift GoogleSignIn
         const { GoogleSignInPlugin } = window.Capacitor.Plugins;
         const result = await GoogleSignInPlugin.signIn();
         firebaseCred = await signInWithCredential(auth, GoogleAuthProvider.credential(result.idToken));
+
+      } else if (platform === "android") {
+        // Android WebView — redirect vers Chrome Custom Tabs
+        const provider = new GoogleAuthProvider();
+        await signInWithRedirect(auth, provider);
+        setSubmitting(false);
+        return; // résultat capturé au prochain chargement via getRedirectResult
+
       } else {
+        // Web — popup standard
         const provider = new GoogleAuthProvider();
         firebaseCred = await signInWithPopup(auth, provider);
       }
-      const ref = doc(db, "users", firebaseCred.user.uid);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        await setDoc(ref, {
-          uid: firebaseCred.user.uid,
-          nom: firebaseCred.user.displayName,
-          email: firebaseCred.user.email,
-          tel: "", whatsapp: "",
-          createdAt: serverTimestamp()
-        });
+
+      if (firebaseCred?.user) {
+        const ref = doc(db, "users", firebaseCred.user.uid);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            uid: firebaseCred.user.uid,
+            nom: firebaseCred.user.displayName,
+            email: firebaseCred.user.email,
+            tel: "", whatsapp: "",
+            createdAt: serverTimestamp()
+          });
+        }
       }
     } catch(e) {
       console.error("Google login error:", e);
