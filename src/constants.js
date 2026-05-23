@@ -44,4 +44,4 @@ export const villes = [
 ];
 
 export const waLink = (num, titre) =>
-  `https://wa.me/${num}?text=${encodeURIComponent(`Bonjour ! Je suis intéressé(e) par votre annonce "${titre}" sur YoMan!`)}`;
+  `https://wa.me/${num}?text=${encodeURIComponent(`Bonjour ! Je suis intéressé(e) par votre annonce "${titre}" sur Jago`)}`;

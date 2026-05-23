@@ -51,7 +51,7 @@ export function HomePage({
       {/* ── HERO ── */}
       <section className="hero">
         <div className="hero-glow1"/><div className="hero-glow2"/><div className="hero-glow3"/>
-        <div className="hero-badge">🇧🇫 Burkina Faso · Vente entre particuliers</div>
+        <div className="hero-badge">🌍 Zone UEMOA · Commerce entre particuliers</div>
         <h1>Achète. Vends.<br/><em>Entre particuliers.</em></h1>
         <p>La marketplace gratuite entre particuliers — simple, rapide, locale. Publie en 2 minutes.</p>
         <div className="sbar">
@@ -301,7 +301,7 @@ export function HomePage({
                   💬 Contacter le vendeur
                 </button>
                 <button className="mwa" style={{background:"rgba(18,140,126,.2)",color:"#34d399",borderColor:"rgba(18,140,126,.4)",flex:1}} onClick={async ()=>{
-                  const txt = `🛍️ *${selected.titre}*\n💰 ${selected.prix}\n📍 ${selected.quartier}, ${selected.ville}\n\n${selected.description}\n\n👉 YoMan! : https://yomanbf.com`;
+                  const txt = `🛍️ *${selected.titre}*\n💰 ${selected.prix}\n📍 ${selected.quartier}, ${selected.ville}\n\n${selected.description}\n\n👉 Jago : https://appjago.com`;
                   if (navigator.share) {
                     try { await navigator.share({ title: selected.titre, text: txt }); } catch(e) {}
                   } else {

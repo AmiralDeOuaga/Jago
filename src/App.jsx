@@ -9,7 +9,7 @@ import { signOut } from "firebase/auth";
 import { ADMIN_UID, catEmojis } from "./constants";
 import { styles } from "./styles";
 import { useAuth } from "./hooks/useAuth";
-import { YoManLogo } from "./components/YoManLogo";
+import { JagoLogo } from "./components/JagoLogo";
 
 import { PostPage }     from "./pages/PostPage";
 import { ProfilePage }  from "./pages/ProfilePage";
@@ -17,7 +17,7 @@ import { AdminPage }    from "./pages/AdminPage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { HomePage }     from "./pages/HomePage";
 
-export default function YoMan() {
+export default function Jago() {
   // ── Toast ──────────────────────────────────────────────────
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "success") => {
@@ -477,7 +477,7 @@ export default function YoMan() {
 
   const Header = ({ showPost = true }) => (
     <header className="hdr"><div className="hdr-in">
-      <div style={{cursor:"pointer",flexShrink:0}} onClick={() => setPage("home")}><YoManLogo variant="white" height={38}/></div>
+      <div style={{cursor:"pointer",flexShrink:0}} onClick={() => setPage("home")}><JagoLogo variant="white" height={38}/></div>
       <div className="nav-search">
         <input
           placeholder="🔍  Rechercher une annonce…"
@@ -501,7 +501,7 @@ export default function YoMan() {
   );
 
   const Footer = () => (
-    <footer className="footer"><strong>YoMan!</strong> &nbsp;·&nbsp; Vente entre particuliers · Burkina Faso · 2026</footer>
+    <footer className="footer"><strong>Jago</strong> &nbsp;·&nbsp; Commerce entre particuliers · Zone UEMOA · 2026</footer>
   );
 
   // ── Loading ────────────────────────────────────────────────
@@ -511,7 +511,7 @@ export default function YoMan() {
   if (!user) return (<><style>{styles}</style>
     <OfflineBanner/><Toast/>
     <div className="auth-wrap"><div className="auth-box">
-      <div className="auth-logo-wrap"><YoManLogo variant="color" height={56}/></div>
+      <div className="auth-logo-wrap"><JagoLogo variant="color" height={56}/></div>
       <div className="tabs">
         <button className={`tab${authTab==="login"?" on":""}`} onClick={() => { setAuthTab("login"); setAuthErr(""); }}>Se connecter</button>
         <button className={`tab${authTab==="register"?" on":""}`} onClick={() => { setAuthTab("register"); setAuthErr(""); }}>S'inscrire</button>
