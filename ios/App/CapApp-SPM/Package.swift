@@ -21,7 +21,7 @@ let package = Package(
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
-            path: "../../LocalPackages/ios/Sources/PushNotificationsPlugin"
+            path: "Sources/PushNotificationsPlugin"
         ),
         .target(
             name: "SignInWithApple",
@@ -29,7 +29,7 @@ let package = Package(
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
-            path: "../../LocalPackages/ios/Sources/SignInWithApple"
+            path: "Sources/SignInWithApple"
         ),
         .target(
             name: "CapApp-SPM",
@@ -39,7 +39,8 @@ let package = Package(
                 .byName(name: "PushNotificationsPlugin"),
                 .byName(name: "SignInWithApple"),
                 .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
-            ]
+            ],
+            path: "Sources/CapApp-SPM"
         )
     ]
 )

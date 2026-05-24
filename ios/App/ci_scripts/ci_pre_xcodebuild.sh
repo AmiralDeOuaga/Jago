@@ -28,11 +28,11 @@ npm run build
 # Sync to iOS
 npx cap sync ios
 
-# Restore Package.swift — single package, no nested LocalCapacitorPlugins dependency
-# (cap sync overwrites Package.swift with node_modules paths)
+# Restore Package.swift after cap sync overwrites it
+# Sources live in CapApp-SPM/Sources/ — all within the package root
 PACKAGE_SWIFT="$CI_PRIMARY_REPOSITORY_PATH/ios/App/CapApp-SPM/Package.swift"
 
-echo "Restoring Package.swift (merged targets, single capacitor-swift-pm dependency)..."
+echo "Restoring Package.swift..."
 cat > "$PACKAGE_SWIFT" << 'PKGEOF'
 // swift-tools-version: 5.9
 import PackageDescription
@@ -57,7 +57,7 @@ let package = Package(
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
-            path: "../../LocalPackages/ios/Sources/PushNotificationsPlugin"
+            path: "Sources/PushNotificationsPlugin"
         ),
         .target(
             name: "SignInWithApple",
@@ -65,7 +65,7 @@ let package = Package(
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
-            path: "../../LocalPackages/ios/Sources/SignInWithApple"
+            path: "Sources/SignInWithApple"
         ),
         .target(
             name: "CapApp-SPM",
@@ -75,7 +75,8 @@ let package = Package(
                 .byName(name: "PushNotificationsPlugin"),
                 .byName(name: "SignInWithApple"),
                 .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
-            ]
+            ],
+            path: "Sources/CapApp-SPM"
         )
     ]
 )
