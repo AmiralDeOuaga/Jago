@@ -57,12 +57,12 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Yoman a besoin d'accéder à votre caméra pour prendre des photos de vos annonces.</string>
+	<string>Jago a besoin d'accéder à votre caméra pour prendre des photos de vos annonces.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Yoman a besoin d'accéder à vos photos pour ajouter des images à vos annonces.</string>
+	<string>Jago a besoin d'accéder à vos photos pour ajouter des images à vos annonces.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Yoman a besoin d'accéder à votre photothèque pour enregistrer des images.</string>
+	<string>Jago a besoin d'accéder à votre photothèque pour enregistrer des images.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Yoman a besoin d'accéder à votre microphone pour les vidéos.</string>
+	<string>Jago a besoin d'accéder à votre microphone pour les vidéos.</string>
 </dict>
 </plist>
