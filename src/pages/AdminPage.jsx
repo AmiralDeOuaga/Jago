@@ -17,7 +17,7 @@ export function AdminPage({
       <div className="admin-screen">
         <div className="admin-header">
           <div>
-            <div className="admin-title">🛡️ Panel Admin — YoMan!</div>
+            <div className="admin-title">🛡️ Panel Admin — Jago</div>
             <div className="admin-subtitle">Gestion de la marketplace</div>
           </div>
           <div style={{display:"flex",gap:10}}>

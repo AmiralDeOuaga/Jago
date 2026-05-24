@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { styles } from "../styles";
 import { categories, villes } from "../constants";
 import { CardImage } from "../components/CardImage";
 import { ModalImage } from "../components/ModalImage";
 import { BottomNav } from "../components/BottomNav";
+import { JagoLogo } from "../components/JagoLogo";
 
 export function HomePage({
   user,
@@ -45,14 +47,18 @@ export function HomePage({
   Toast,
   SignalModal,
 }) {
+  const [showCatMenu, setShowCatMenu] = useState(false);
+  const activeCatLabel = catActive === "tous" ? null : catActive === "favoris" ? "Favoris" : categories.find(c=>c.id===catActive)?.label;
+
   return (<><style>{styles}</style>
     <OfflineBanner/><SignalModal/><Toast/>
     <div className="app"><Header/>
       {/* ── HERO ── */}
       <section className="hero">
-        <div className="hero-glow1"/><div className="hero-glow2"/><div className="hero-glow3"/>
-        <div className="hero-badge">🇧🇫 Burkina Faso · Vente entre particuliers</div>
-        <h1>Achète. Vends.<br/><em>Entre particuliers.</em></h1>
+        <div className="hero-logo-wrap">
+          <JagoLogo variant="white" height={64}/>
+        </div>
+        <h1>Achète. Vends. Échanges.<br/><em>Entre particuliers.</em></h1>
         <p>La marketplace gratuite entre particuliers — simple, rapide, locale. Publie en 2 minutes.</p>
         <div className="sbar">
           <input
@@ -69,14 +75,14 @@ export function HomePage({
       <div className="sec">
         {/* ── URGENTES ── */}
         {annonces.filter(a=>a.urgent).length > 0 && <>
-          <div className="sec-title">⚡ Urgentes</div>
+          <div className="sec-title">Annonces urgentes</div>
           <div className="vedettes-scroll">
             {annonces.filter(a=>a.urgent).slice(0,12).map(a=>(
               <div key={a.id} className="vedette-card" onClick={()=>openAd(a)}>
                 <div className="vedette-img">
                   {a.photos?.[0] && <img src={a.photos[0]} alt={a.titre}/>}
                   {!a.photos?.[0] && <span style={{fontSize:42}}>{a.emoji}</span>}
-                  <span className="vedette-badge">⚡ Urgent</span>
+                  <span className="vedette-badge">Urgent</span>
                 </div>
                 <div className="vedette-body">
                   <div className="vedette-title">{a.titre}</div>
@@ -87,37 +93,33 @@ export function HomePage({
           </div>
         </>}
 
-        {/* ── CATÉGORIE TABS ── */}
-        <div className="sec-title" style={{marginBottom:4}}>Catégories</div>
-        <div className="cat-tabs-wrap">
-          <div className="cat-tabs">
-            <div className={`cat-tab-item${catActive==="tous"?" on":""}`}
-              onClick={()=>{setCat("tous");setCurrentPage(1);}}>
-              <span className="cat-tab-icon">🗂️</span>
-              Toutes
-              <span className="cat-tab-count">{annonces.length}</span>
-            </div>
-            {categories.map(c=>(
-              <div key={c.id} className={`cat-tab-item${catActive===c.id?" on":""}`}
-                onClick={()=>{setCat(c.id);setCurrentPage(1);}}>
-                <span className="cat-tab-icon">{c.icon}</span>
-                {c.label}
-                <span className="cat-tab-count">{annonces.filter(a=>a.categorie===c.id).length}</span>
-              </div>
-            ))}
-            <div className={`cat-tab-item fav${catActive==="favoris"?" on":""}`}
-              onClick={()=>{setCat("favoris");setCurrentPage(1);}}>
-              <span className="cat-tab-icon">❤️</span>
-              Favoris
-              <span className="cat-tab-count">{favoris.length}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── FILTRES ── */}
+        {/* ── FILTRES & CATÉGORIES ── */}
         <div className="filter-row">
+          <div style={{position:"relative"}}>
+            <button className={`filter-chip${catActive!=="tous"?" on":""}`} onClick={()=>setShowCatMenu(v=>!v)}>
+              {activeCatLabel || "Catégories"} <span style={{marginLeft:4,fontSize:10}}>{showCatMenu?"▲":"▼"}</span>
+            </button>
+            {showCatMenu && (
+              <div className="cat-dropdown" onClick={()=>setShowCatMenu(false)}>
+                <div className={`cat-drop-item${catActive==="tous"?" on":""}`}
+                  onClick={()=>{setCat("tous");setCurrentPage(1);}}>
+                  Toutes
+                </div>
+                {categories.map(c=>(
+                  <div key={c.id} className={`cat-drop-item${catActive===c.id?" on":""}`}
+                    onClick={()=>{setCat(c.id);setCurrentPage(1);}}>
+                    {c.label}
+                  </div>
+                ))}
+                <div className={`cat-drop-item${catActive==="favoris"?" on":""}`}
+                  onClick={()=>{setCat("favoris");setCurrentPage(1);}}>
+                  Favoris
+                </div>
+              </div>
+            )}
+          </div>
           <button className={`filter-chip${showFiltres?" on":""}`} onClick={()=>setShowFiltres(f=>!f)}>
-            ⚙️ Filtres {(filtreVille!=="toutes"||filtrePrixMin||filtrePrixMax) ? "·" : ""}
+            Filtres {(filtreVille!=="toutes"||filtrePrixMin||filtrePrixMax) ? "·" : ""}
           </button>
           {search && (
             <button className="filter-chip" onClick={()=>{setSI("");setSearch("");setCurrentPage(1);}}>
@@ -153,26 +155,9 @@ export function HomePage({
           </div>
         )}
 
-        {/* ── RÉSULTATS ── */}
-        <div className="results-bar">
-          <div>
-            <div className="results-count">
-              {filtered.length} annonce{filtered.length!==1?"s":""}
-            </div>
-            {(search||catActive!=="tous"||filtreVille!=="toutes") && (
-              <div className="results-sub">
-                {catActive!=="tous" && catActive!=="favoris" && `${categories.find(c=>c.id===catActive)?.icon} ${categories.find(c=>c.id===catActive)?.label}`}
-                {catActive==="favoris" && "❤️ Mes favoris"}
-                {search && ` · "${search}"`}
-                {filtreVille!=="toutes" && ` · ${filtreVille}`}
-              </div>
-            )}
-          </div>
-        </div>
 
         {filtered.length === 0
           ? <div className="empty">
-              <div className="eico">🔍</div>
               <div className="emsg">Aucune annonce trouvée</div>
               <div className="esub">Essayez d'autres critères de recherche</div>
             </div>
@@ -189,13 +174,13 @@ export function HomePage({
                 <div className="cbody">
                   <div className="ctitle">{a.titre}</div>
                   <div className="cprix">{a.prix}</div>
-                  <div className="clieu">📍 {a.quartier}, {a.ville}</div>
+                  <div className="clieu">{a.quartier}, {a.ville}</div>
                   <div className="cdesc">{a.description}</div>
                   <div className="cfoot">
                     <div className="cvend">
                       <strong>{a.vendeur}</strong>
                       <span style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}>
-                        <span style={{fontSize:10}}>👁️ {a.vues||0}</span>
+                        <span style={{fontSize:10}}>{a.vues||0} vue{(a.vues||0)!==1?"s":""}</span>
                         <span style={{color:"var(--border)"}}>·</span>
                         {formatDate(a.createdAt)}
                       </span>
@@ -251,20 +236,20 @@ export function HomePage({
               <div className="mtitle">{selected.titre}</div>
               <div className="mprix">{selected.prix}</div>
               <div className="mmeta">
-                <span>📍 {selected.quartier}, {selected.ville}</span>
-                <span>👤 {selected.vendeur}</span>
-                <span>🕐 {formatDate(selected.createdAt)}</span>
-                <span>👁️ {selected.vues||0} vue{(selected.vues||0)!==1?"s":""}</span>
+                <span>{selected.quartier}, {selected.ville}</span>
+                <span>{selected.vendeur}</span>
+                <span>{formatDate(selected.createdAt)}</span>
+                <span>{selected.vues||0} vue{(selected.vues||0)!==1?"s":""}</span>
               </div>
               <div className="mdesc">{selected.description}</div>
 
               {/* NOTATION VENDEUR */}
               <div className="rating-box">
-                <div className="rating-title">⭐ Notation du vendeur</div>
+                <div className="rating-title">Notation du vendeur</div>
                 <div className="rating-avg">
                   <span className="rating-avg-n">{avgRating(ratings)}</span>
                   <div>
-                    <div className="stars">{[1,2,3,4,5].map(i=><span key={i}>{i<=Math.round(avgRating(ratings))?"⭐":"☆"}</span>)}</div>
+                    <div className="stars">{[1,2,3,4,5].map(i=><span key={i} style={{color:i<=Math.round(avgRating(ratings))?"#FFD93D":"#ccc",fontSize:18}}>★</span>)}</div>
                     <div className="rating-count">{ratings.length} avis</div>
                   </div>
                 </div>
@@ -274,7 +259,7 @@ export function HomePage({
                   <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:6}}>Votre avis :</div>
                   <div className="stars" style={{marginBottom:8}}>
                     {[1,2,3,4,5].map(i=>(
-                      <span key={i} className="star" onClick={()=>setMyRating(i)}>{i<=myRating?"⭐":"☆"}</span>
+                      <span key={i} className="star" onClick={()=>setMyRating(i)} style={{color:i<=myRating?"#FFD93D":"#ccc",fontSize:22,cursor:"pointer"}}>★</span>
                     ))}
                   </div>
                   <textarea className="rating-comment" placeholder="Laissez un commentaire (optionnel)..." value={myComment} onChange={e=>setMyComment(e.target.value)}/>
@@ -286,8 +271,8 @@ export function HomePage({
                   {ratings.slice(0,3).map(r=>(
                     <div key={r.id} className="review-item">
                       <div className="review-header">
-                        <span className="review-name">👤 {r.buyerName}</span>
-                        <span className="review-date">{[1,2,3,4,5].map(i=>i<=r.note?"⭐":"☆").join("")}</span>
+                        <span className="review-name">{r.buyerName}</span>
+                        <span className="review-date">{[1,2,3,4,5].map(i=>i<=r.note?"★":"☆").join("")}</span>
                       </div>
                       {r.commentaire && <div className="review-text">{r.commentaire}</div>}
                     </div>
@@ -296,12 +281,12 @@ export function HomePage({
               </div>
               <div className="macts">
                 <button className="mclose" onClick={() => setSelected(null)}>Fermer</button>
-                <button className="mclose" style={{color:"#f87171",borderColor:"rgba(239,68,68,.4)"}} onClick={()=>reportAd(selected)}>🚩 Signaler</button>
+                <button className="mclose" style={{color:"#f87171",borderColor:"rgba(239,68,68,.4)"}} onClick={()=>reportAd(selected)}>Signaler</button>
                 <button className="mwa" onClick={()=>startConversation(selected)}>
-                  💬 Contacter le vendeur
+                  Contacter le vendeur
                 </button>
                 <button className="mwa" style={{background:"rgba(18,140,126,.2)",color:"#34d399",borderColor:"rgba(18,140,126,.4)",flex:1}} onClick={async ()=>{
-                  const txt = `🛍️ *${selected.titre}*\n💰 ${selected.prix}\n📍 ${selected.quartier}, ${selected.ville}\n\n${selected.description}\n\n👉 YoMan! : https://yomanbf.com`;
+                  const txt = `${selected.titre}\n${selected.prix}\n${selected.quartier}, ${selected.ville}\n\n${selected.description}\n\nJago : https://appjago.com`;
                   if (navigator.share) {
                     try { await navigator.share({ title: selected.titre, text: txt }); } catch(e) {}
                   } else {

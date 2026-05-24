@@ -6,10 +6,10 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
-import { ADMIN_UID, catEmojis } from "./constants";
+import { ADMIN_UID, catEmojis, getPays } from "./constants";
 import { styles } from "./styles";
 import { useAuth } from "./hooks/useAuth";
-import { YoManLogo } from "./components/YoManLogo";
+import { JagoLogo } from "./components/JagoLogo";
 
 import { PostPage }     from "./pages/PostPage";
 import { ProfilePage }  from "./pages/ProfilePage";
@@ -17,7 +17,7 @@ import { AdminPage }    from "./pages/AdminPage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { HomePage }     from "./pages/HomePage";
 
-export default function YoMan() {
+export default function Jago() {
   // ── Toast ──────────────────────────────────────────────────
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "success") => {
@@ -34,15 +34,34 @@ export default function YoMan() {
     lEmail, setLEmail,
     lPwd, setLPwd,
     rNom, setRNom,
+    rPseudo, setRPseudo,
     rEmail, setREmail,
     rTel, setRTel,
     rWa, setRWa,
     rPwd, setRPwd,
+    rPwd2, setRPwd2,
+    rPays, setRPays, paysList,
     loginGoogle, loginApple, forgotPassword, login, register,
   } = useAuth(showToast);
 
   // submitting for post operations (distinct from auth submitting)
   const [submitting, setSubmitting] = useState(false);
+
+  // ── Pays utilisateur ───────────────────────────────────────
+  const [userPays, setUserPays] = useState("bf");
+
+  useEffect(() => {
+    if (!user) return;
+    const loadUserProfile = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists() && snap.data().pays) {
+          setUserPays(snap.data().pays);
+        }
+      } catch(e) { console.error(e); }
+    };
+    loadUserProfile();
+  }, [user]);
 
   // ── Network ────────────────────────────────────────────────
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -228,6 +247,7 @@ export default function YoMan() {
           whatsapp: rWa || rTel || user.email,
           vendeur: user.displayName || user.email,
           urgent: pUrg, emoji: catEmojis[pCat],
+          pays: userPays,
           userId: user.uid, photos: pPhotos,
           createdAt: serverTimestamp()
         };
@@ -357,6 +377,9 @@ export default function YoMan() {
 
   const myAds = annonces.filter(a => a.userId === user?.uid);
   const filtered = annonces.filter(a => {
+    // Filtre pays : les annonces sans champ `pays` sont considérées comme Burkina (rétrocompat)
+    const aPays = a.pays || "bf";
+    if (aPays !== userPays) return false;
     const mc = catActive === "tous" || (catActive === "favoris" ? favoris.includes(a.id) : a.categorie === catActive);
     const ms = search === "" || [a.titre, a.description, a.ville].some(s => s?.toLowerCase().includes(search.toLowerCase()));
     const mv = filtreVille === "toutes" || a.ville === filtreVille;
@@ -459,7 +482,7 @@ export default function YoMan() {
   const SignalModal = () => signalModal ? (
     <div className="signal-overlay" onClick={()=>setSignalModal(null)}>
       <div className="signal-box" onClick={e=>e.stopPropagation()}>
-        <h3>🚩 Signaler cette annonce</h3>
+        <h3>Signaler cette annonce</h3>
         <div className="signal-options">
           {["Fausse annonce","Prix abusif","Contenu inapproprié","Arnaque","Autre"].map(r=>(
             <div key={r} className={`signal-opt${signalRaison===r?" on":""}`} onClick={()=>setSignalRaison(r)}>
@@ -477,23 +500,16 @@ export default function YoMan() {
 
   const Header = ({ showPost = true }) => (
     <header className="hdr"><div className="hdr-in">
-      <div style={{cursor:"pointer",flexShrink:0}} onClick={() => setPage("home")}><YoManLogo variant="white" height={38}/></div>
-      <div className="nav-search">
-        <input
-          placeholder="🔍  Rechercher une annonce…"
-          value={searchInput}
-          onChange={e=>setSI(e.target.value)}
-          onKeyDown={e=>{if(e.key==="Enter"){setSearch(searchInput);setCurrentPage(1);setPage("home");}}}
-        />
-        <button onClick={()=>{setSearch(searchInput);setCurrentPage(1);setPage("home");}}>Chercher</button>
-      </div>
+      <div style={{cursor:"pointer",flexShrink:0}} onClick={() => setPage("home")}><JagoLogo variant="white" height={38}/></div>
       <div className="hdr-r">
-        {user && <span className="huser">Salut, <strong>{user.displayName?.split(" ")[0]}</strong> 👋</span>}
-        {isAdmin && <button className="btn-o" style={{borderColor:"#7C3AED",color:"#a78bfa"}} onClick={()=>setPage("admin")}>🛡️</button>}
+        {isAdmin && <button className="btn-o" style={{borderColor:"#7C3AED",color:"#a78bfa"}} onClick={()=>setPage("admin")}>Admin</button>}
         <button className="btn-o hdr-mobile-hide" style={{position:"relative"}} onClick={() => setPage("messages")}>
-          💬{unreadCount>0&&<span style={{position:"absolute",top:-4,right:-4,background:"var(--red)",color:"white",fontSize:9,fontWeight:800,width:16,height:16,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadCount}</span>}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          {unreadCount>0&&<span style={{position:"absolute",top:-4,right:-4,background:"var(--red)",color:"white",fontSize:9,fontWeight:800,width:16,height:16,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadCount}</span>}
         </button>
-        <button className="btn-o hdr-mobile-hide" onClick={() => setPage("profile")}>👤</button>
+        <button className="btn-o hdr-mobile-hide" onClick={() => setPage("profile")}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
         {showPost && <button className="btn-p hdr-mobile-hide" onClick={() => setPage("post")}>+ Annonce</button>}
         <button className="btn-o" onClick={logout} title="Déconnexion">⏻</button>
       </div>
@@ -501,22 +517,22 @@ export default function YoMan() {
   );
 
   const Footer = () => (
-    <footer className="footer"><strong>YoMan!</strong> &nbsp;·&nbsp; Vente entre particuliers · Burkina Faso · 2026</footer>
+    <footer className="footer"><strong>Jago</strong> &nbsp;·&nbsp; Vente entre particuliers · UEMOA · 2026</footer>
   );
 
   // ── Loading ────────────────────────────────────────────────
-  if (loading) return <div className="loading">⏳</div>;
+  if (loading) return <div className="loading">Chargement…</div>;
 
   // ── Auth screen ────────────────────────────────────────────
   if (!user) return (<><style>{styles}</style>
     <OfflineBanner/><Toast/>
     <div className="auth-wrap"><div className="auth-box">
-      <div className="auth-logo-wrap"><YoManLogo variant="color" height={56}/></div>
+      <div className="auth-logo-wrap"><JagoLogo variant="color" height={56}/></div>
       <div className="tabs">
         <button className={`tab${authTab==="login"?" on":""}`} onClick={() => { setAuthTab("login"); setAuthErr(""); }}>Se connecter</button>
         <button className={`tab${authTab==="register"?" on":""}`} onClick={() => { setAuthTab("register"); setAuthErr(""); }}>S'inscrire</button>
       </div>
-      {authErr && <div className="ferr">⚠️ {authErr}</div>}
+      {authErr && <div className="ferr">{authErr}</div>}
       <button className="google-btn" onClick={loginGoogle} disabled={authSubmitting}>
         <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
         Continuer avec Google
@@ -534,11 +550,40 @@ export default function YoMan() {
         </div>
         <button className="fb" onClick={login} disabled={authSubmitting}>{authSubmitting ? "Connexion…" : "Se connecter →"}</button>
       </> : <>
-        <div className="fg"><label className="fl">Nom complet *</label><input className="fi" placeholder="Ex : Moussa Kaboré" value={rNom} onChange={e=>setRNom(e.target.value)}/></div>
+        <div className="fg">
+          <label className="fl">Choisis ton pays *</label>
+          <div className="pays-grid">
+            {paysList.map(p => (
+              <div key={p.id} className={`pays-card${rPays===p.id?" on":""}`} onClick={()=>setRPays(p.id)}>
+                <img className="pays-flag" src={`https://flagcdn.com/w40/${p.id}.png`} alt={p.label}/>
+                <span className="pays-name">{p.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="fhint">Ton marché local — modifiable dans les paramètres</div>
+        </div>
+        <div className="fg"><label className="fl">Nom complet *</label><input className="fi" placeholder="Ex : Moussa Kaboré" value={rNom} onChange={e=>setRNom(e.target.value)}/><div className="fhint">Non visible par les autres utilisateurs</div></div>
+        <div className="fg"><label className="fl">Pseudo *</label><input className="fi" placeholder="Ex : moussa_bf" value={rPseudo} onChange={e=>setRPseudo(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}/><div className="fhint">Visible publiquement · 3-20 caractères, lettres, chiffres, _</div></div>
         <div className="fg"><label className="fl">Email *</label><input className="fi" type="email" placeholder="votre@email.com" value={rEmail} onChange={e=>setREmail(e.target.value)}/></div>
-        <div className="fg"><label className="fl">Numéro de téléphone *</label><input className="fi" placeholder="Ex : 70123456" value={rTel} onChange={e=>setRTel(e.target.value)}/></div>
-        <div className="fg"><label className="fl">Numéro WhatsApp (avec indicatif)</label><input className="fi" placeholder="Ex : 22670123456" value={rWa} onChange={e=>setRWa(e.target.value)}/><div className="fhint">Laisser vide = même que téléphone</div></div>
+        <div className="fg"><label className="fl">Numéro de téléphone *</label>
+          <div style={{display:"flex",gap:6}}>
+            <span className="fi" style={{width:"auto",flexShrink:0,display:"flex",alignItems:"center",paddingLeft:10,paddingRight:10,color:"var(--gray4)",fontWeight:600}}>
+              {paysList.find(p=>p.id===rPays)?.indicatif || "+226"}
+            </span>
+            <input className="fi" style={{flex:1}} placeholder="Ex : 70123456" value={rTel} onChange={e=>setRTel(e.target.value)}/>
+          </div>
+        </div>
+        <div className="fg"><label className="fl">Numéro WhatsApp (optionnel)</label>
+          <div style={{display:"flex",gap:6}}>
+            <span className="fi" style={{width:"auto",flexShrink:0,display:"flex",alignItems:"center",paddingLeft:10,paddingRight:10,color:"var(--gray4)",fontWeight:600}}>
+              {paysList.find(p=>p.id===rPays)?.indicatif || "+226"}
+            </span>
+            <input className="fi" style={{flex:1}} placeholder="Ex : 70123456" value={rWa} onChange={e=>setRWa(e.target.value)}/>
+          </div>
+          <div className="fhint">Laisser vide = même que téléphone</div>
+        </div>
         <div className="fg"><label className="fl">Mot de passe *</label><input className="fi" type="password" placeholder="Minimum 6 caractères" value={rPwd} onChange={e=>setRPwd(e.target.value)}/></div>
+        <div className="fg"><label className="fl">Confirmer le mot de passe *</label><input className="fi" type="password" placeholder="Répète ton mot de passe" value={rPwd2} onChange={e=>setRPwd2(e.target.value)} style={{borderColor: rPwd2 && rPwd !== rPwd2 ? "var(--red)" : rPwd2 && rPwd === rPwd2 ? "var(--green)" : ""}}/>{rPwd2 && rPwd !== rPwd2 && <div className="fhint" style={{color:"var(--red)"}}>Les mots de passe ne correspondent pas</div>}{rPwd2 && rPwd === rPwd2 && <div className="fhint" style={{color:"var(--green)"}}>Mots de passe identiques</div>}</div>
         <button className="fb" onClick={register} disabled={authSubmitting}>{authSubmitting ? "Création…" : "Créer mon compte →"}</button>
       </>}
     </div></div>
@@ -548,6 +593,7 @@ export default function YoMan() {
   if (page === "post") return (
     <PostPage
       user={user} isOnline={isOnline}
+      userPays={userPays}
       page={page} setPage={setPage}
       editAd={editAd} setEditAd={setEditAd}
       pTitre={pTitre} setPTitre={setPTitre}

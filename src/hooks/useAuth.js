@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
+import { pays as paysList } from "../constants";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -9,12 +10,11 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
   signInWithCredential,
   getRedirectResult,
   sendPasswordResetEmail
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 
 export function useAuth(showToast) {
   const [user, setUser]           = useState(null);
@@ -26,17 +26,20 @@ export function useAuth(showToast) {
   // Auth fields
   const [lEmail, setLEmail] = useState("");
   const [lPwd, setLPwd]     = useState("");
-  const [rNom, setRNom]     = useState("");
-  const [rEmail, setREmail] = useState("");
-  const [rTel, setRTel]     = useState("");
-  const [rWa, setRWa]       = useState("");
-  const [rPwd, setRPwd]     = useState("");
+  const [rNom, setRNom]         = useState("");
+  const [rPseudo, setRPseudo]   = useState("");
+  const [rEmail, setREmail]     = useState("");
+  const [rTel, setRTel]         = useState("");
+  const [rWa, setRWa]           = useState("");
+  const [rPwd, setRPwd]         = useState("");
+  const [rPwd2, setRPwd2]       = useState("");
+  const [rPays, setRPays]       = useState("bf");
 
-  // Auth listener + récupération résultat redirect Google (web + Android)
+  // Auth listener + récupération résultat redirect Google (web uniquement)
   useEffect(() => {
     const platform = window.Capacitor?.getPlatform?.() || window.Capacitor?.platform || "web";
-    // iOS natif gère le résultat directement — pas besoin de redirect
-    if (platform !== "ios") {
+    // Sur web seulement — redirect ne fonctionne pas dans le WebView Capacitor
+    if (platform === "web") {
       getRedirectResult(auth).then(async (cred) => {
         if (cred?.user) {
           const ref = doc(db, "users", cred.user.uid);
@@ -76,11 +79,10 @@ export function useAuth(showToast) {
         firebaseCred = await signInWithCredential(auth, GoogleAuthProvider.credential(result.idToken));
 
       } else if (platform === "android") {
-        // Android WebView — redirect vers Chrome Custom Tabs
-        const provider = new GoogleAuthProvider();
-        await signInWithRedirect(auth, provider);
+        // Google Sign-In natif Android — à implémenter avec un plugin natif
+        setAuthErr("Connexion Google non disponible sur Android. Utilise ton email et mot de passe.");
         setSubmitting(false);
-        return; // résultat capturé au prochain chargement via getRedirectResult
+        return;
 
       } else {
         // Web — popup standard
@@ -184,13 +186,25 @@ export function useAuth(showToast) {
 
   const register = async () => {
     setAuthErr(""); setSubmitting(true);
-    if (!rNom||!rEmail||!rTel||!rPwd) { setAuthErr("Veuillez remplir tous les champs obligatoires."); setSubmitting(false); return; }
+    if (!rNom||!rPseudo||!rEmail||!rTel||!rPwd||!rPwd2||!rPays) { setAuthErr("Veuillez remplir tous les champs obligatoires."); setSubmitting(false); return; }
+    if (rPwd !== rPwd2) { setAuthErr("Les mots de passe ne correspondent pas."); setSubmitting(false); return; }
+    const pseudoClean = rPseudo.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(pseudoClean)) {
+      setAuthErr("Pseudo : 3 à 20 caractères, lettres, chiffres ou _ uniquement.");
+      setSubmitting(false); return;
+    }
     try {
+      // Vérifier unicité du pseudo
+      const pseudoSnap = await getDocs(query(collection(db, "users"), where("pseudo", "==", pseudoClean)));
+      if (!pseudoSnap.empty) { setAuthErr("Ce pseudo est déjà pris. Choisis-en un autre."); setSubmitting(false); return; }
+
       const cred = await createUserWithEmailAndPassword(auth, rEmail, rPwd);
-      await updateProfile(cred.user, { displayName: rNom });
+      await updateProfile(cred.user, { displayName: pseudoClean });
       await setDoc(doc(db, "users", cred.user.uid), {
-        uid: cred.user.uid, nom: rNom, email: rEmail,
-        tel: rTel, whatsapp: rWa || rTel, createdAt: serverTimestamp()
+        uid: cred.user.uid, nom: rNom, pseudo: pseudoClean,
+        email: rEmail, tel: rTel, whatsapp: rWa || rTel,
+        pays: rPays,
+        createdAt: serverTimestamp()
       });
     } catch(e) {
       if (e.code === "auth/email-already-in-use") {
@@ -220,10 +234,14 @@ export function useAuth(showToast) {
     lEmail, setLEmail,
     lPwd, setLPwd,
     rNom, setRNom,
+    rPseudo, setRPseudo,
     rEmail, setREmail,
     rTel, setRTel,
     rWa, setRWa,
     rPwd, setRPwd,
+    rPwd2, setRPwd2,
+    rPays, setRPays,
+    paysList,
     loginGoogle,
     loginApple,
     forgotPassword,

@@ -1,10 +1,11 @@
 import { styles } from "../styles";
-import { categories, villes, catEmojis } from "../constants";
+import { categories, getVilles, catEmojis } from "../constants";
 import { PhotoUploader } from "../components/PhotoUploader";
 
 export function PostPage({
   user,
   isOnline,
+  userPays,
   page, setPage,
   editAd, setEditAd,
   pTitre, setPTitre,
@@ -43,7 +44,7 @@ export function PostPage({
           <div className="fg"><label className="fl">Titre *</label><input className="fi" placeholder="Ex : Toyota Corolla 2020" value={pTitre} onChange={e=>setPTitre(e.target.value)}/></div>
           <div className="fg"><label className="fl">Prix (FCFA) *</label><input className="fi" placeholder="Ex : 2 500 000" value={pPrix} onChange={e=>setPPrix(e.target.value)}/></div>
           <div className="frow">
-            <div className="fg"><label className="fl">Ville *</label><select className="fs" value={pVille} onChange={e=>setPVille(e.target.value)}>{villes.map(v=><option key={v}>{v}</option>)}</select></div>
+            <div className="fg"><label className="fl">Ville *</label><select className="fs" value={pVille} onChange={e=>setPVille(e.target.value)}>{getVilles(userPays).map(v=><option key={v}>{v}</option>)}</select></div>
             <div className="fg"><label className="fl">Quartier *</label><input className="fi" placeholder="Ex : Ouaga 2000" value={pQ} onChange={e=>setPQ(e.target.value)}/></div>
           </div>
           <div className="fg"><label className="fl">Description *</label><textarea className="fta" placeholder="Décrivez votre article…" value={pDesc} onChange={e=>setPDesc(e.target.value)}/></div>

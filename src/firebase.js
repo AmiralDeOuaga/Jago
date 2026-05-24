@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { initializeAuth, browserLocalPersistence } from "firebase/auth";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAn1kSnAzJF862qEtAaaDccepDWnyM3-3g",
@@ -16,6 +16,7 @@ const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 
+// Persistance robuste : IndexedDB en priorité (meilleur pour Capacitor), fallback localStorage
 export const auth = initializeAuth(app, {
-  persistence: browserLocalPersistence
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence]
 });

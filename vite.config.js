@@ -38,9 +38,9 @@ export default defineConfig({
       selfDestroying: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'YoMan - Marketplace Burkina Faso',
-        short_name: 'YoMan',
-        description: 'Achète et vends facilement au Burkina Faso',
+        name: 'Jago - Marketplace UEMOA',
+        short_name: 'Jago',
+        description: 'Achète et vends facilement dans toute la zone UEMOA',
         theme_color: '#0A2463',
         background_color: '#080C14',
         display: 'standalone',

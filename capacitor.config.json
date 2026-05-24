@@ -1,6 +1,6 @@
 {
-  "appId": "com.yoman.app",
-  "appName": "Yoman",
+  "appId": "com.appjago.app",
+  "appName": "Jago",
   "webDir": "dist",
   "ios": {
     "allowsLinkPreview": false,

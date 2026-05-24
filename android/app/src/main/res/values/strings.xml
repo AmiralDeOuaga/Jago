@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">YoMan</string>
-    <string name="title_activity_main">YoMan</string>
+    <string name="app_name">Jago</string>
+    <string name="title_activity_main">Jago</string>
     <string name="package_name">com.yoman.app</string>
     <string name="custom_url_scheme">com.yoman.app</string>
 </resources>
