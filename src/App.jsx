@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { db, auth } from "./firebase";
+import { db, auth, trackEvent } from "./firebase";
 import {
   collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc,
   getDoc, setDoc, where, onSnapshot, limit, startAfter
@@ -75,6 +75,7 @@ export default function Jago() {
 
   // ── Navigation ─────────────────────────────────────────────
   const [page, setPage]           = useState("home");
+  const navigate = (p) => { setPage(p); trackEvent("page_view", { page_title: p }); };
   const [catActive, setCat]       = useState("tous");
   const [searchInput, setSI]      = useState("");
   const [search, setSearch]       = useState("");
@@ -226,6 +227,7 @@ export default function Jago() {
       }
     }
 
+    trackEvent("post_ad_start", { category: pCat, pays: userPays, urgent: pUrg });
     setSubmitting(true);
     try {
       if (editAd) {
@@ -313,6 +315,7 @@ export default function Jago() {
   const sendMessage = async () => {
     if (!newMsg.trim() || !activeConv) return;
     const txt = newMsg.trim();
+    trackEvent("send_message", { conv_id: activeConv.id });
     setNewMsg("");
     try {
       await addDoc(collection(db, "conversations", activeConv.id, "messages"), {
@@ -405,6 +408,7 @@ export default function Jago() {
   const openAd = async (a) => {
     setSelected(a);
     loadRatings(a.userId);
+    trackEvent("view_item", { item_id: a.id, item_name: a.titre, item_category: a.categorie, item_variant: a.pays });
     try {
       const ref = doc(db, "annonces", a.id);
       await updateDoc(ref, { vues: (a.vues || 0) + 1 });

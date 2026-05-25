@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAnalytics, logEvent, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAn1kSnAzJF862qEtAaaDccepDWnyM3-3g",
@@ -20,3 +21,13 @@ export const db = getFirestore(app);
 export const auth = initializeAuth(app, {
   persistence: [indexedDBLocalPersistence, browserLocalPersistence]
 });
+
+// Analytics — initialisé uniquement si supporté (pas dans certains contextes Capacitor)
+let analyticsInstance = null;
+isSupported().then(yes => {
+  if (yes) analyticsInstance = getAnalytics(app);
+}).catch(() => {});
+
+export const trackEvent = (eventName, params = {}) => {
+  if (analyticsInstance) logEvent(analyticsInstance, eventName, params);
+};
