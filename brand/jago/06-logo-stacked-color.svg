@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 260" width="280" height="260">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A2463"></stop>
+      <stop offset="100%" stop-color="#1756C8"></stop>
+    </linearGradient>
+    <radialGradient id="glow" cx="75%" cy="25%" r="50%">
+      <stop offset="0%" stop-color="#FFD93D" stop-opacity="0.22"></stop>
+      <stop offset="70%" stop-color="#FFD93D" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="280" height="260" fill="#0A2463"></rect>
+  <rect x="100" y="30" width="80" height="80" rx="18" fill="url(#bg)" stroke="rgba(255,255,255,0.15)" stroke-width="1"></rect>
+  <rect x="100" y="30" width="80" height="80" rx="18" fill="url(#glow)"></rect>
+  
+    <ellipse cx="140" cy="71" rx="17.099999999999998" ry="22.799999999999997" fill="#FFFFFF"></ellipse>
+    <path d="M 140 51.05 L 140 90.95" stroke="rgba(10,36,99,0.4)" stroke-width="1.9" fill="none" stroke-linecap="round"></path>
+    <line x1="136.2" y1="57.7" x2="143.8" y2="57.7" stroke="rgba(10,36,99,0.4)" stroke-width="1.4249999999999998" stroke-linecap="round"></line>
+    <line x1="136.2" y1="63.4" x2="143.8" y2="63.4" stroke="rgba(10,36,99,0.4)" stroke-width="1.4249999999999998" stroke-linecap="round"></line>
+    <line x1="136.2" y1="71" x2="143.8" y2="71" stroke="rgba(10,36,99,0.4)" stroke-width="1.4249999999999998" stroke-linecap="round"></line>
+    <line x1="136.2" y1="78.6" x2="143.8" y2="78.6" stroke="rgba(10,36,99,0.4)" stroke-width="1.4249999999999998" stroke-linecap="round"></line>
+    <line x1="136.2" y1="84.3" x2="143.8" y2="84.3" stroke="rgba(10,36,99,0.4)" stroke-width="1.4249999999999998" stroke-linecap="round"></line>
+    <ellipse cx="134.3" cy="63.4" rx="2.375" ry="4.75" fill="rgba(255,255,255,0.45)"></ellipse>
+  
+  <circle cx="170" cy="42" r="4" fill="#FFD93D"></circle>
+  <text x="140" y="180" text-anchor="middle" font-family="&#39;Montserrat&#39;,&#39;Arial Black&#39;,sans-serif" font-weight="900" font-size="48" fill="#FFFFFF" letter-spacing="-1.8">Jago</text>
+  <text x="140" y="210" text-anchor="middle" font-family="&#39;Montserrat&#39;,sans-serif" font-weight="500" font-size="10" fill="rgba(255,255,255,0.55)" letter-spacing="2">·  COMMERCE ENTRE PARTICULIERS  ·</text>
+</svg>

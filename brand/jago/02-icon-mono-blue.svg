@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect x="0" y="0" width="200" height="200" rx="44" fill="#1756C8"></rect>
+  
+    <ellipse cx="100" cy="100" rx="43.199999999999996" ry="57.599999999999994" fill="#FFFFFF" opacity="1"></ellipse>
+    <path d="M 100 49.6 L 100 150.4" stroke="rgba(10,36,99,0.4)" stroke-width="4.8" fill="none" stroke-linecap="round"></path>
+    <line x1="90.4" y1="66.4" x2="109.6" y2="66.4" stroke="rgba(10,36,99,0.4)" stroke-width="3.5999999999999996" stroke-linecap="round"></line>
+    <line x1="90.4" y1="80.8" x2="109.6" y2="80.8" stroke="rgba(10,36,99,0.4)" stroke-width="3.5999999999999996" stroke-linecap="round"></line>
+    <line x1="90.4" y1="100" x2="109.6" y2="100" stroke="rgba(10,36,99,0.4)" stroke-width="3.5999999999999996" stroke-linecap="round"></line>
+    <line x1="90.4" y1="119.2" x2="109.6" y2="119.2" stroke="rgba(10,36,99,0.4)" stroke-width="3.5999999999999996" stroke-linecap="round"></line>
+    <line x1="90.4" y1="133.6" x2="109.6" y2="133.6" stroke="rgba(10,36,99,0.4)" stroke-width="3.5999999999999996" stroke-linecap="round"></line>
+    <ellipse cx="85.6" cy="80.8" rx="6" ry="12" fill="rgba(255,255,255,0.45)"></ellipse>
+  
+</svg>

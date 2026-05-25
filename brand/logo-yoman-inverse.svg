@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- YoMan! — Logo inversé (sur fond bleu nuit ou photo sombre) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" width="560" height="160" font-family="'Montserrat','Arial Black',sans-serif">
+  <rect x="0" y="0" width="280" height="80" fill="#0A2463"/>
+  <rect x="6" y="8" width="68" height="68" rx="15" fill="#1756C8"/>
+  <text x="40" y="55" font-weight="900" font-size="34" text-anchor="middle">
+    <tspan fill="#FFFFFF">Yo</tspan><tspan fill="#FFD93D">!</tspan>
+  </text>
+  <text x="86" y="48" font-weight="900" font-size="30">
+    <tspan fill="#FFFFFF">Yo</tspan><tspan fill="#FFD93D">Man!</tspan>
+  </text>
+  <text x="86" y="64" font-weight="500" font-size="8" fill="#9DB1D6" letter-spacing="1.5">·  ENTRE PARTICULIERS  ·</text>
+</svg>
