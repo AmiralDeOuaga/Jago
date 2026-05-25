@@ -616,6 +616,7 @@ export default function Jago() {
   if (page === "profile") return (
     <ProfilePage
       user={user}
+      userPays={userPays}
       myAds={myAds}
       setSelected={setSelected}
       startEdit={startEdit}
@@ -661,6 +662,7 @@ export default function Jago() {
   return (
     <HomePage
       user={user}
+      userPays={userPays}
       annonces={annonces}
       filtered={filtered}
       paginatedAds={paginatedAds}

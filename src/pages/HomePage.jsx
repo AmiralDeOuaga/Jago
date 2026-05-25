@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { styles } from "../styles";
-import { categories, villes } from "../constants";
+import { categories, getVilles, getPays } from "../constants";
 import { CardImage } from "../components/CardImage";
 import { ModalImage } from "../components/ModalImage";
 import { BottomNav } from "../components/BottomNav";
@@ -8,6 +8,7 @@ import { JagoLogo } from "../components/JagoLogo";
 
 export function HomePage({
   user,
+  userPays,
   annonces,
   filtered,
   paginatedAds,
@@ -49,6 +50,8 @@ export function HomePage({
 }) {
   const [showCatMenu, setShowCatMenu] = useState(false);
   const activeCatLabel = catActive === "tous" ? null : catActive === "favoris" ? "Favoris" : categories.find(c=>c.id===catActive)?.label;
+  const villesDuPays = getVilles(userPays);
+  const paysInfo = getPays(userPays);
 
   return (<><style>{styles}</style>
     <OfflineBanner/><SignalModal/><Toast/>
@@ -138,7 +141,7 @@ export function HomePage({
               <label className="filter-label">Ville</label>
               <select className="fs" value={filtreVille} onChange={e=>setFiltreVille(e.target.value)}>
                 <option value="toutes">Toutes les villes</option>
-                {villes.map(v=><option key={v}>{v}</option>)}
+                {villesDuPays.map(v=><option key={v}>{v}</option>)}
               </select>
             </div>
             <div>

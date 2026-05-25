@@ -1,8 +1,10 @@
 import { styles } from "../styles";
 import { CardImage } from "../components/CardImage";
+import { getPays } from "../constants";
 
 export function ProfilePage({
   user,
+  userPays,
   myAds,
   setSelected,
   startEdit,
@@ -13,6 +15,7 @@ export function ProfilePage({
   OfflineBanner,
   Toast,
 }) {
+  const paysInfo = getPays(userPays);
   return (<><style>{styles}</style>
     <OfflineBanner/><Toast/>
     <div className="app"><Header/>
@@ -23,6 +26,10 @@ export function ProfilePage({
           <div className="pinfo">
             <h2>{user.displayName}</h2>
             <p>📧 {user.email}</p>
+            <p style={{display:"flex",alignItems:"center",gap:6,marginTop:4,fontSize:13,color:"var(--gray4)"}}>
+              <img src={`https://flagcdn.com/w20/${userPays}.png`} alt={paysInfo.label} style={{width:18,height:13,objectFit:"cover",borderRadius:2}}/>
+              {paysInfo.label}
+            </p>
             <div className="pstats">
               <div><div className="psn">{myAds.length}</div><div className="psl">Annonces</div></div>
               <div><div className="psn">{myAds.reduce((s,a)=>s+(a.vues||0),0)}</div><div className="psl">Vues totales</div></div>
