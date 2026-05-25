@@ -34,7 +34,7 @@ export default defineConfig({
     removeCrossorigin(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'script-defer',
+      injectRegister: null,
       selfDestroying: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
