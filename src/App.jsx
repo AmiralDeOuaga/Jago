@@ -441,14 +441,15 @@ export default function Jago() {
 
         // Ajouter les listeners AVANT register() pour ne pas rater l'event
         PushNotifications.addListener("registration", async (token) => {
-          console.log("APNs token reçu:", token.value);
+          const platform = window.Capacitor?.getPlatform?.() || "unknown";
+          // Android → FCM token, iOS → APNs token
+          const tokenKey = platform === "android" ? "fcmToken" : "apnsToken";
+          console.log(`Token ${platform} (${tokenKey}):`, token.value);
           try {
-            await updateDoc(doc(db, "users", user.uid), { apnsToken: token.value });
-            console.log("apnsToken sauvegardé avec updateDoc");
+            await setDoc(doc(db, "users", user.uid), { [tokenKey]: token.value }, { merge: true });
+            console.log(`${tokenKey} sauvegardé`);
           } catch (e) {
-            console.log("updateDoc échoué, essai setDoc:", e);
-            await setDoc(doc(db, "users", user.uid), { apnsToken: token.value }, { merge: true });
-            console.log("apnsToken sauvegardé avec setDoc");
+            console.error("Erreur sauvegarde token push:", e);
           }
         });
         PushNotifications.addListener("registrationError", (err) => {
