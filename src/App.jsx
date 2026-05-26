@@ -64,12 +64,17 @@ export default function Jago() {
     loadUserProfile();
   }, [user]);
 
-  // ── Splash screen — caché une fois l'auth résolue ─────────
+  // ── Splash screen — caché après 2 double-frames pour garantir le rendu ──
   useEffect(() => {
     if (loading) return;
     if (Capacitor.isNativePlatform()) {
       import("@capacitor/splash-screen").then(({ SplashScreen }) => {
-        SplashScreen.hide({ fadeOutDuration: 300 });
+        // Double rAF : on attend que React ait peint le premier vrai frame
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            SplashScreen.hide({ fadeOutDuration: 200 });
+          });
+        });
       }).catch(() => {});
     }
   }, [loading]);
