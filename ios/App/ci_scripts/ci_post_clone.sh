@@ -22,6 +22,9 @@ echo "npm version: $(npm --version)"
 # Go to project root
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 
+# Skip Puppeteer browser download (unavailable in Xcode Cloud network)
+export PUPPETEER_SKIP_DOWNLOAD=1
+
 # Install dependencies
 npm install --legacy-peer-deps
 
