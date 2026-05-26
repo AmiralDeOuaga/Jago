@@ -7,6 +7,13 @@
     "limitsNavigationsToAppBoundDomains": true
   },
   "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": false,
+      "backgroundColor": "#0A2463",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
     "GoogleAuth": {
       "scopes": ["profile", "email"],
       "serverClientId": "515991232927-55u0e2r4bvnfc86j2gd5b9if52sn1urc.apps.googleusercontent.com",

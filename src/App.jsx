@@ -7,6 +7,7 @@ import {
 import { signOut } from "firebase/auth";
 
 import { ADMIN_UID, catEmojis, getPays } from "./constants";
+import { Capacitor } from "@capacitor/core";
 import { styles } from "./styles";
 import { useAuth } from "./hooks/useAuth";
 import { JagoLogo } from "./components/JagoLogo";
@@ -62,6 +63,16 @@ export default function Jago() {
     };
     loadUserProfile();
   }, [user]);
+
+  // ── Splash screen — caché une fois l'auth résolue ─────────
+  useEffect(() => {
+    if (loading) return;
+    if (Capacitor.isNativePlatform()) {
+      import("@capacitor/splash-screen").then(({ SplashScreen }) => {
+        SplashScreen.hide({ fadeOutDuration: 300 });
+      }).catch(() => {});
+    }
+  }, [loading]);
 
   // ── Network ────────────────────────────────────────────────
   const [isOnline, setIsOnline] = useState(navigator.onLine);
