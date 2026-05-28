@@ -4,13 +4,13 @@ import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } fr
 import { getAnalytics, logEvent, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            || "AIzaSyAn1kSnAzJF862qEtAaaDccepDWnyM3-3g",
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        || "yoman-d45bf.firebaseapp.com",
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID         || "yoman-d45bf",
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     || "yoman-d45bf.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID|| "515991232927",
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID             || "1:515991232927:web:26741e2c4f2a7c6c435daa",
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     || "G-3DZWR7EQJ5",
 };
 
 const app = initializeApp(firebaseConfig);
