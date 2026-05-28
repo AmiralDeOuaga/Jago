@@ -1,18 +1,13 @@
-name: iOS Sign & Upload to App Store
+name: iOS Build & Upload
 
 on:
-  workflow_dispatch:  # déclenchement manuel
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'public/**'
-      - 'ios/**'
-      - 'package.json'
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    runs-on: macos-latest
+  build-ios:
+    runs-on: macos-16
     timeout-minutes: 60
 
     steps:
@@ -25,112 +20,162 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Créer .env
+        run: |
+          echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" >> .env
+          echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> .env
+          echo "VITE_FIREBASE_MEASUREMENT_ID=${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}" >> .env
+
       - name: Install dependencies
         env:
           PUPPETEER_SKIP_DOWNLOAD: 1
         run: npm install --legacy-peer-deps
 
-      - name: Build web app
+      - name: Build web assets
         run: npm run build
 
-      - name: Capacitor sync
+      - name: Capacitor sync iOS
         run: npx cap sync ios
 
-      - name: Install Apple Distribution certificate
-        env:
-          CERT_BASE64: ${{ secrets.APPLE_DIST_CERT_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+      - name: Restaurer Package.swift
         run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          KEYCHAIN_PASSWORD=temppass123
+          cat > ios/App/CapApp-SPM/Package.swift << 'PKGEOF'
+          // swift-tools-version: 5.9
+          import PackageDescription
+          let package = Package(
+              name: "CapApp-SPM",
+              platforms: [.iOS(.v15)],
+              products: [.library(name: "CapApp-SPM", targets: ["CapApp-SPM"])],
+              dependencies: [
+                  .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.3.1"),
+                  .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")
+              ],
+              targets: [
+                  .target(name: "PushNotificationsPlugin",
+                      dependencies: [
+                          .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                          .product(name: "Cordova", package: "capacitor-swift-pm")
+                      ],
+                      path: "Sources/PushNotificationsPlugin"),
+                  .target(name: "SignInWithApple",
+                      dependencies: [
+                          .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                          .product(name: "Cordova", package: "capacitor-swift-pm")
+                      ],
+                      path: "Sources/SignInWithApple"),
+                  .target(name: "CapApp-SPM",
+                      dependencies: [
+                          .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                          .product(name: "Cordova", package: "capacitor-swift-pm"),
+                          .byName(name: "PushNotificationsPlugin"),
+                          .byName(name: "SignInWithApple"),
+                          .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
+                      ],
+                      path: "Sources/CapApp-SPM")
+              ]
+          )
+          PKGEOF
 
-          echo "$CERT_BASE64" | base64 --decode -o $RUNNER_TEMP/cert.p12
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$RUNNER_TEMP/cert.p12" \
-            -P "$CERT_PASSWORD" \
-            -A -t cert -f pkcs12 \
-            -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-
-      - name: Install provisioning profile
-        env:
-          PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          echo "$PROFILE_BASE64" | base64 --decode -o $RUNNER_TEMP/profile.mobileprovision
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $RUNNER_TEMP/profile.mobileprovision \
-            ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      - name: Setup App Store Connect API key
-        env:
-          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
-
-      - name: Build & Archive
+      - name: Build & Archive (sans signature)
         run: |
           xcodebuild archive \
             -project ios/App/App.xcodeproj \
             -scheme App \
+            -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath $RUNNER_TEMP/Jago.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution: Abdoul Sigué (QA6BFS78P2)" \
-            PROVISIONING_PROFILE_SPECIFIER="Yoman App store-3" \
-            DEVELOPMENT_TEAM=QA6BFS78P2
+            CODE_SIGN_IDENTITY="-" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=QA6BFS78P2 \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
-      - name: Export IPA
-        env:
-          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      - name: Extraire l'IPA depuis l'archive
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          APP=$(find $RUNNER_TEMP/Jago.xcarchive -name "*.app" | head -1)
+          mkdir -p $RUNNER_TEMP/Payload
+          cp -r "$APP" $RUNNER_TEMP/Payload/
+          cd $RUNNER_TEMP
+          zip -qr $RUNNER_TEMP/App_unsigned.ipa Payload/
+          echo "IPA non signé: $(ls -lh $RUNNER_TEMP/App_unsigned.ipa)"
+
+      - name: Re-signer l'IPA
+        env:
+          CERT_BASE64: ${{ secrets.APPLE_DIST_CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          # Installer le certificat
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          echo "$CERT_BASE64" | base64 --decode -o $RUNNER_TEMP/cert.p12
+          security create-keychain -p "temppass" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "temppass" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # Installer le profil
+          echo "$PROFILE_BASE64" | base64 --decode -o $RUNNER_TEMP/profile.mobileprovision
+
+          # Extraire l'IPA
+          mkdir -p $RUNNER_TEMP/resign
+          unzip -q $RUNNER_TEMP/App_unsigned.ipa -d $RUNNER_TEMP/resign
+          APP=$(find $RUNNER_TEMP/resign/Payload -name "*.app" | head -1)
+
+          # Copier le profil dans l'app
+          cp $RUNNER_TEMP/profile.mobileprovision "$APP/embedded.mobileprovision"
+
+          # Créer les entitlements
+          cat > $RUNNER_TEMP/entitlements.plist << 'EOPLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>QA6BFS78P2</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.yoman.app</key>
-              <string>Yoman App store-3</string>
-            </dict>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
+            <key>application-identifier</key><string>QA6BFS78P2.com.yoman.app</string>
+            <key>aps-environment</key><string>production</string>
+            <key>com.apple.developer.team-identifier</key><string>QA6BFS78P2</string>
+            <key>keychain-access-groups</key><array><string>QA6BFS78P2.*</string></array>
+            <key>get-task-allow</key><false/>
           </dict>
           </plist>
-          EOF
+          EOPLIST
 
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/Jago.xcarchive \
-            -exportPath $RUNNER_TEMP/export \
-            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID $ASC_KEY_ID \
-            -authenticationKeyIssuerID $ASC_ISSUER_ID
+          # Signer les frameworks
+          find "$APP/Frameworks" \( -name "*.framework" -o -name "*.dylib" \) 2>/dev/null | while read f; do
+            codesign --force --sign "Apple Distribution: Abdoul Sigué (QA6BFS78P2)" "$f"
+          done
 
-      - name: Upload to App Store Connect
+          # Signer l'app
+          codesign --force \
+            --sign "Apple Distribution: Abdoul Sigué (QA6BFS78P2)" \
+            --entitlements $RUNNER_TEMP/entitlements.plist \
+            --timestamp \
+            "$APP"
+
+          # Repackager
+          cd $RUNNER_TEMP/resign
+          zip -qr $RUNNER_TEMP/Jago_signed.ipa Payload/
+          echo "IPA signé: $(ls -lh $RUNNER_TEMP/Jago_signed.ipa)"
+
+      - name: Upload sur App Store Connect
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
-          IPA=$(find $RUNNER_TEMP/export -name "*.ipa" | head -1)
-          echo "Uploading: $IPA"
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
           xcrun altool --upload-app \
             --type ios \
-            --file "$IPA" \
-            --apiKey $ASC_KEY_ID \
-            --apiIssuer $ASC_ISSUER_ID
+            --file "$RUNNER_TEMP/Jago_signed.ipa" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Nettoyer
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/signing.keychain-db 2>/dev/null || true
