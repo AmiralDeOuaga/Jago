@@ -51,7 +51,7 @@ jobs:
           KEYCHAIN_PASSWORD: jago-keychain-tmp
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          echo "$CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          echo "$CERTIFICATE_BASE64" | tr -d '\n' | base64 --decode > $RUNNER_TEMP/certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -64,7 +64,7 @@ jobs:
           PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
           PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PP_PATH"
+          echo "$PROVISIONING_PROFILE_BASE64" | tr -d '\n' | base64 --decode > "$PP_PATH"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
 
