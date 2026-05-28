@@ -13,10 +13,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(
             clientID: "515991232927-olc8ph973obek3fssl2se7ed165ao314.apps.googleusercontent.com"
         )
-        // Fond sombre immédiat pour éviter le flash blanc
-        DispatchQueue.main.async {
-            self.window?.backgroundColor = UIColor(red: 0.059, green: 0.122, blue: 0.306, alpha: 1.0)
-        }
+        // Fond bleu synchrone — évite tout flash blanc avant le splash
+        let jagoBlue = UIColor(red: 0.039, green: 0.141, blue: 0.388, alpha: 1.0)
+        window?.backgroundColor = jagoBlue
+        UIApplication.shared.windows.first?.backgroundColor = jagoBlue
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             self.disableHorizontalSwipe()
         }

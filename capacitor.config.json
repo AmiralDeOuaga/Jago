@@ -4,7 +4,8 @@
   "webDir": "dist",
   "ios": {
     "allowsLinkPreview": false,
-    "limitsNavigationsToAppBoundDomains": true
+    "limitsNavigationsToAppBoundDomains": true,
+    "backgroundColor": "#0A2463"
   },
   "plugins": {
     "SplashScreen": {
