@@ -41,6 +41,11 @@ jobs:
       - name: Capacitor sync iOS
         run: npx cap sync ios
 
+      - name: Pod install
+        run: |
+          cd ios/App
+          pod install --repo-update
+
       - name: Restaurer Package.swift
         run: |
           cat > ios/App/CapApp-SPM/Package.swift << 'PKGEOF'
