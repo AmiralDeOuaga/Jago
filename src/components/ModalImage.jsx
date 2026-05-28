@@ -8,7 +8,7 @@ export function ModalImage({ annonce, onFullscreen }) {
   return (
     <div className="mimg-wrap">
       {/* Image cliquable pour agrandir */}
-      <img src={photos[idx]} alt="" className="mimg-real" onClick={() => onFullscreen(photos, idx)}/>
+      <img src={photos[idx]} alt={`${annonce.titre} — photo ${idx + 1}`} className="mimg-real" loading="lazy" onClick={() => onFullscreen(photos, idx)}/>
       <div className="mbadges">
         <span className="bcat">{categories.find(c => c.id === annonce.categorie)?.label}</span>
         {annonce.urgent && <span className="burg">⚡ Urgent</span>}

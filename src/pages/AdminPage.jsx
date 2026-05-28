@@ -1,4 +1,3 @@
-import { styles } from "../styles";
 import { categories } from "../constants";
 
 export function AdminPage({
@@ -12,7 +11,7 @@ export function AdminPage({
   Header,
   Footer,
 }) {
-  return (<><style>{styles}</style>
+  return (<>
     <div className="app"><Header/>
       <div className="admin-screen">
         <div className="admin-header">

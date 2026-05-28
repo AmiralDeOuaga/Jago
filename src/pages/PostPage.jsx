@@ -1,4 +1,3 @@
-import { styles } from "../styles";
 import { categories, getVilles, catEmojis } from "../constants";
 import { PhotoUploader } from "../components/PhotoUploader";
 
@@ -32,7 +31,7 @@ export function PostPage({
   OfflineBanner,
   Toast,
 }) {
-  return (<><style>{styles}</style>
+  return (<>
     <OfflineBanner/><Toast/>
     <div className="app"><Header showPost={false}/>
       <div className="pscreen">

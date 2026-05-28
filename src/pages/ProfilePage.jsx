@@ -1,4 +1,3 @@
-import { styles } from "../styles";
 import { CardImage } from "../components/CardImage";
 import { getPays } from "../constants";
 
@@ -16,7 +15,7 @@ export function ProfilePage({
   Toast,
 }) {
   const paysInfo = getPays(userPays);
-  return (<><style>{styles}</style>
+  return (<>
     <OfflineBanner/><Toast/>
     <div className="app"><Header/>
       <div className="profscreen">

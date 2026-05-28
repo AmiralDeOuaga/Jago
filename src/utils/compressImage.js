@@ -15,7 +15,10 @@ export function compressImage(file, maxPx = 1200, quality = 0.82) {
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
       canvas.toBlob(blob => resolve(blob || file), "image/jpeg", quality);
     };
-    img.onerror = () => resolve(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
     img.src = url;
   });
 }

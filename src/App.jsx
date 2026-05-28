@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { db, auth, trackEvent } from "./firebase";
 import {
   collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc,
@@ -8,7 +8,6 @@ import { signOut } from "firebase/auth";
 
 import { ADMIN_UID, catEmojis, getPays } from "./constants";
 import { Capacitor } from "@capacitor/core";
-import { styles } from "./styles";
 import { useAuth } from "./hooks/useAuth";
 import { JagoLogo } from "./components/JagoLogo";
 
@@ -394,9 +393,9 @@ export default function Jago() {
   const [currentPage, setCurrentPage]     = useState(1);
   const ADS_PER_PAGE = 9;
 
-  const myAds = annonces.filter(a => a.userId === user?.uid);
-  const filtered = annonces.filter(a => {
-    // Filtre pays : les annonces sans champ `pays` sont considérées comme Burkina (rétrocompat)
+  const myAds = useMemo(() => annonces.filter(a => a.userId === user?.uid), [annonces, user]);
+
+  const filtered = useMemo(() => annonces.filter(a => {
     const aPays = a.pays || "bf";
     if (aPays !== userPays) return false;
     const mc = catActive === "tous" || (catActive === "favoris" ? favoris.includes(a.id) : a.categorie === catActive);
@@ -406,10 +405,13 @@ export default function Jago() {
     const mp = (!filtrePrixMin || prix >= parseInt(filtrePrixMin.replace(/\D/g,"")||0)) &&
                (!filtrePrixMax || prix <= parseInt(filtrePrixMax.replace(/\D/g,"")||99999999999));
     return mc && ms && mv && mp;
-  });
+  }), [annonces, userPays, catActive, favoris, search, filtreVille, filtrePrixMin, filtrePrixMax]);
 
   const totalPages  = Math.ceil(filtered.length / ADS_PER_PAGE);
-  const paginatedAds = filtered.slice((currentPage-1)*ADS_PER_PAGE, currentPage*ADS_PER_PAGE);
+  const paginatedAds = useMemo(
+    () => filtered.slice((currentPage-1)*ADS_PER_PAGE, currentPage*ADS_PER_PAGE),
+    [filtered, currentPage]
+  );
 
   const formatDate = (ts) => {
     if (!ts) return "À l'instant";
@@ -419,6 +421,17 @@ export default function Jago() {
     if (diff < 1440) return `Il y a ${Math.floor(diff/60)} h`;
     return `Il y a ${Math.floor(diff/1440)} j`;
   };
+
+  // ── Fermeture modales avec Escape ─────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== "Escape") return;
+      if (fullscreen) { setFullscreen(null); return; }
+      if (selected) { setSelected(null); return; }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [fullscreen, selected]);
 
   // ── Ouvrir une annonce ─────────────────────────────────────
   const openAd = async (a) => {
@@ -545,7 +558,7 @@ export default function Jago() {
   if (loading) return <div className="loading">Chargement…</div>;
 
   // ── Auth screen ────────────────────────────────────────────
-  if (!user) return (<><style>{styles}</style>
+  if (!user) return (<>
     <OfflineBanner/><Toast/>
     <div className="auth-wrap"><div className="auth-box">
       <div className="auth-logo-wrap"><JagoLogo variant="color" height={56}/></div>

@@ -22,26 +22,26 @@ const IconUser = () => (
 );
 
 export const BottomNav = ({ page, setPage, catActive, setCat, favoris, unread = 0 }) => (
-  <nav className="bottom-nav">
-    <button className={`bnav-item${page === "home" && catActive !== "favoris" ? " on" : ""}`} onClick={() => { setPage("home"); setCat("tous"); }} style={{ position: "relative" }}>
+  <nav className="bottom-nav" aria-label="Navigation principale">
+    <button aria-label="Accueil" className={`bnav-item${page === "home" && catActive !== "favoris" ? " on" : ""}`} onClick={() => { setPage("home"); setCat("tous"); }} style={{ position: "relative" }}>
       <span className="bnav-icon"><IconHome/></span>
       <span className="bnav-label">Accueil</span>
     </button>
-    <button className={`bnav-item${page === "messages" ? " on" : ""}`} onClick={() => setPage("messages")} style={{ position: "relative" }}>
+    <button aria-label={`Messages${unread > 0 ? ` (${unread} non lus)` : ""}`} className={`bnav-item${page === "messages" ? " on" : ""}`} onClick={() => setPage("messages")} style={{ position: "relative" }}>
       <span className="bnav-icon"><IconMsg/></span>
-      {unread > 0 && <span className="bnav-badge">{unread}</span>}
+      {unread > 0 && <span className="bnav-badge" aria-hidden="true">{unread}</span>}
       <span className="bnav-label">Messages</span>
     </button>
-    <button className="bnav-item bnav-post" onClick={() => setPage("post")} style={{ position: "relative" }}>
+    <button aria-label="Publier une annonce" className="bnav-item bnav-post" onClick={() => setPage("post")} style={{ position: "relative" }}>
       <span className="bnav-icon">+</span>
       <span className="bnav-label">Publier</span>
     </button>
-    <button className={`bnav-item${page === "home" && catActive === "favoris" ? " on" : ""}`} onClick={() => { setPage("home"); setCat("favoris"); }} style={{ position: "relative" }}>
+    <button aria-label={`Favoris${favoris.length > 0 ? ` (${favoris.length})` : ""}`} className={`bnav-item${page === "home" && catActive === "favoris" ? " on" : ""}`} onClick={() => { setPage("home"); setCat("favoris"); }} style={{ position: "relative" }}>
       <span className="bnav-icon"><IconHeart filled={catActive === "favoris"}/></span>
-      {favoris.length > 0 && <span className="bnav-badge">{favoris.length}</span>}
+      {favoris.length > 0 && <span className="bnav-badge" aria-hidden="true">{favoris.length}</span>}
       <span className="bnav-label">Favoris</span>
     </button>
-    <button className={`bnav-item${page === "profile" ? " on" : ""}`} onClick={() => setPage("profile")} style={{ position: "relative" }}>
+    <button aria-label="Mon profil" className={`bnav-item${page === "profile" ? " on" : ""}`} onClick={() => setPage("profile")} style={{ position: "relative" }}>
       <span className="bnav-icon"><IconUser/></span>
       <span className="bnav-label">Profil</span>
     </button>

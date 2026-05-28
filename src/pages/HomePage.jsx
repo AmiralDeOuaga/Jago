@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { styles } from "../styles";
 import { categories, getVilles, getPays } from "../constants";
 import { CardImage } from "../components/CardImage";
 import { ModalImage } from "../components/ModalImage";
@@ -53,7 +52,7 @@ export function HomePage({
   const villesDuPays = getVilles(userPays);
   const paysInfo = getPays(userPays);
 
-  return (<><style>{styles}</style>
+  return (<>
     <OfflineBanner/><SignalModal/><Toast/>
     <div className="app"><Header/>
       {/* ── HERO ── */}
@@ -83,7 +82,7 @@ export function HomePage({
             {annonces.filter(a=>a.urgent).slice(0,12).map(a=>(
               <div key={a.id} className="vedette-card" onClick={()=>openAd(a)}>
                 <div className="vedette-img">
-                  {a.photos?.[0] && <img src={a.photos[0]} alt={a.titre}/>}
+                  {a.photos?.[0] && <img src={a.photos[0]} alt={a.titre} loading="lazy"/>}
                   {!a.photos?.[0] && <span style={{fontSize:42}}>{a.emoji}</span>}
                   <span className="vedette-badge">Urgent</span>
                 </div>
@@ -193,19 +192,9 @@ export function HomePage({
                 </div>
               </div>
             ))}</div>
-            {totalPages > 1 && (
-              <div className="pagination">
-                <button className="page-btn" onClick={()=>setCurrentPage(p=>Math.max(1,p-1))} disabled={currentPage===1}>‹</button>
-                {Array.from({length:totalPages},(_,i)=>i+1).map(n=>(
-                  <button key={n} className={`page-btn${n===currentPage?" on":""}`} onClick={()=>{setCurrentPage(n);window.scrollTo({top:0,behavior:"smooth"});}}>{n}</button>
-                ))}
-                <button className="page-btn" onClick={()=>setCurrentPage(p=>Math.min(totalPages,p+1))} disabled={currentPage===totalPages}>›</button>
-              </div>
-            )}
-            {/* Bouton "Voir plus" — charge le batch suivant depuis Firestore */}
-            {hasMore && currentPage === totalPages && (
+            {hasMore && (
               <div style={{display:"flex",justifyContent:"center",margin:"12px 0 32px"}}>
-                <button onClick={()=>{ loadMore(); }} disabled={loadingMore}
+                <button onClick={loadMore} disabled={loadingMore}
                   style={{padding:"12px 32px",borderRadius:"50px",border:"1.5px solid rgba(23,86,200,.4)",background:"rgba(23,86,200,.1)",color:"#7ab3ff",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Montserrat',sans-serif"}}>
                   {loadingMore ? "Chargement…" : "Voir plus d'annonces"}
                 </button>
@@ -220,7 +209,7 @@ export function HomePage({
         <div className="fullscreen-overlay" onClick={() => setFullscreen(null)}>
           <button className="fullscreen-close" onClick={() => setFullscreen(null)}>✕</button>
           <div className="fullscreen-hint">Appuie n'importe où pour fermer</div>
-          <img src={fullscreen.photos[fullscreen.idx]} alt="" className="fullscreen-img" onClick={e=>e.stopPropagation()}/>
+          <img src={fullscreen.photos[fullscreen.idx]} alt={`Photo ${fullscreen.idx + 1}`} className="fullscreen-img" onClick={e=>e.stopPropagation()}/>
           {fullscreen.photos.length > 1 && <>
             <button onClick={e=>{e.stopPropagation();setFullscreen(f=>({...f,idx:(f.idx-1+f.photos.length)%f.photos.length}))}} style={{position:"fixed",left:16,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.2)",color:"white",border:"none",borderRadius:"50%",width:48,height:48,fontSize:26,cursor:"pointer",zIndex:10000}}>‹</button>
             <button onClick={e=>{e.stopPropagation();setFullscreen(f=>({...f,idx:(f.idx+1)%f.photos.length}))}} style={{position:"fixed",right:16,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.2)",color:"white",border:"none",borderRadius:"50%",width:48,height:48,fontSize:26,cursor:"pointer",zIndex:10000}}>›</button>

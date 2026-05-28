@@ -1,4 +1,3 @@
-import { styles } from "../styles";
 import { BottomNav } from "../components/BottomNav";
 
 export function MessagesPage({
@@ -19,7 +18,7 @@ export function MessagesPage({
   OfflineBanner,
   Toast,
 }) {
-  return (<><style>{styles}</style>
+  return (<>
     <OfflineBanner/><Toast/>
     <div className="app"><Header/>
       {!activeConv ? (
@@ -36,7 +35,7 @@ export function MessagesPage({
                 {conversations.map(conv => {
                   const hasUnread = conv.lastSenderId !== user.uid && !conv[`read_${user.uid}`];
                   return (
-                    <div key={conv.id} className="conv-item" onClick={()=>setActiveConv(conv)}>
+                    <div key={conv.id} className="conv-item" onClick={()=>{ setActiveConv({...conv, [`read_${user.uid}`]: true}); }}>
                       <div className="conv-avatar">{getOtherName(conv)?.[0]?.toUpperCase()||"?"}</div>
                       <div className="conv-info">
                         <div className="conv-name" style={hasUnread?{fontWeight:900}:{}}>{getOtherName(conv)}</div>

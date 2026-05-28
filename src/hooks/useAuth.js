@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db, auth } from "../firebase";
+import { db, auth, trackEvent } from "../firebase";
 import { pays as paysList } from "../constants";
 import {
   createUserWithEmailAndPassword,
@@ -57,13 +57,11 @@ export function useAuth(showToast) {
       }).catch(() => {});
     }
 
-    const timeout = setTimeout(() => setLoading(false), 5000);
     const unsub = onAuthStateChanged(auth, u => {
-      clearTimeout(timeout);
       setUser(u);
       setLoading(false);
     });
-    return () => { unsub(); clearTimeout(timeout); };
+    return () => unsub();
   }, []);
 
   const loginGoogle = async () => {
@@ -101,6 +99,9 @@ export function useAuth(showToast) {
             tel: "", whatsapp: "",
             createdAt: serverTimestamp()
           });
+          trackEvent("sign_up", { method: "google" });
+        } else {
+          trackEvent("login", { method: "google" });
         }
       }
     } catch(e) {
@@ -143,6 +144,9 @@ export function useAuth(showToast) {
           tel: "", whatsapp: "",
           createdAt: serverTimestamp()
         });
+        trackEvent("sign_up", { method: "apple" });
+      } else {
+        trackEvent("login", { method: "apple" });
       }
     } catch(e) {
       console.error("Apple login error:", e);
@@ -168,6 +172,7 @@ export function useAuth(showToast) {
     setAuthErr(""); setSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, lEmail, lPwd);
+      trackEvent("login", { method: "email" });
     } catch(e) {
       if (e.code === "auth/user-not-found" || e.code === "auth/wrong-password" || e.code === "auth/invalid-credential") {
         setAuthErr("Email ou mot de passe incorrect.");
@@ -187,10 +192,22 @@ export function useAuth(showToast) {
   const register = async () => {
     setAuthErr(""); setSubmitting(true);
     if (!rNom||!rPseudo||!rEmail||!rTel||!rPwd||!rPwd2||!rPays) { setAuthErr("Veuillez remplir tous les champs obligatoires."); setSubmitting(false); return; }
+    if (rNom.trim().length < 2) { setAuthErr("Le nom doit contenir au moins 2 caractères."); setSubmitting(false); return; }
     if (rPwd !== rPwd2) { setAuthErr("Les mots de passe ne correspondent pas."); setSubmitting(false); return; }
+    if (rPwd.length < 6) { setAuthErr("Le mot de passe doit contenir au moins 6 caractères."); setSubmitting(false); return; }
     const pseudoClean = rPseudo.trim().toLowerCase();
     if (!/^[a-z0-9_]{3,20}$/.test(pseudoClean)) {
       setAuthErr("Pseudo : 3 à 20 caractères, lettres, chiffres ou _ uniquement.");
+      setSubmitting(false); return;
+    }
+    const telClean = rTel.replace(/\D/g, "");
+    if (telClean.length < 6 || telClean.length > 15) {
+      setAuthErr("Numéro de téléphone invalide (6 à 15 chiffres).");
+      setSubmitting(false); return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(rEmail.trim())) {
+      setAuthErr("Adresse email invalide.");
       setSubmitting(false); return;
     }
     try {
@@ -202,10 +219,11 @@ export function useAuth(showToast) {
       await updateProfile(cred.user, { displayName: pseudoClean });
       await setDoc(doc(db, "users", cred.user.uid), {
         uid: cred.user.uid, nom: rNom, pseudo: pseudoClean,
-        email: rEmail, tel: rTel, whatsapp: rWa || rTel,
+        email: rEmail, tel: telClean, whatsapp: rWa ? rWa.replace(/\D/g, "") : telClean,
         pays: rPays,
         createdAt: serverTimestamp()
       });
+      trackEvent("sign_up", { method: "email", pays: rPays });
     } catch(e) {
       if (e.code === "auth/email-already-in-use") {
         setAuthErr("Cet email est déjà utilisé.");
