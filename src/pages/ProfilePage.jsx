@@ -57,14 +57,16 @@ export function ProfilePage({
               </div>
             )}
             {showPays && !pendingRequest && (
-              <div className="pays-grid" style={{marginTop:10}}>
-                {paysList.filter(p => p.id !== userPays).map(p => (
-                  <div key={p.id} className="pays-card"
-                    onClick={() => { changePays(p.id); setShowPays(false); }}>
-                    <img className="pays-flag" src={`https://flagcdn.com/w40/${p.id}.png`} alt={p.label}/>
-                    <span className="pays-name">{p.label}</span>
-                  </div>
-                ))}
+              <div style={{marginTop:10, overflow:"hidden", borderRadius:12}}>
+                <div className="pays-grid">
+                  {paysList.filter(p => p.id !== userPays).map(p => (
+                    <div key={p.id} className="pays-card"
+                      onClick={() => { changePays(p.id); setShowPays(false); }}>
+                      <img className="pays-flag" src={`https://flagcdn.com/w40/${p.id}.png`} alt={p.label}/>
+                      <span className="pays-name">{p.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             <div className="pstats">
@@ -106,7 +108,7 @@ export function ProfilePage({
                   <div className="cdesc">{a.description}</div>
                   <div style={{display:"flex",gap:8,marginTop:"auto",paddingTop:10,borderTop:"1px solid var(--border)"}}>
                     <button className="del-btn" style={{background:"rgba(23,86,200,.1)",color:"#7ab3ff",border:"1px solid rgba(23,86,200,.3)"}} onClick={e=>{e.stopPropagation();startEdit(a);}}>Modifier</button>
-                    <button className="del-btn" onClick={e=>{e.stopPropagation();deleteAd(a.id);}}>Supprimer</button>
+                    <button className="del-btn icon-only" onClick={e=>{e.stopPropagation();deleteAd(a.id);}}>🗑</button>
                   </div>
                 </div>
               </div>
