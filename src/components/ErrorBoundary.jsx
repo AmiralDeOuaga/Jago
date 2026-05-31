@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component {
           background: "#0A2463", color: "#fff", padding: 32, textAlign: "center",
           fontFamily: "'Montserrat', sans-serif",
         }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>⚠️</div>
+          <div style={{ fontSize: 56, marginBottom: 20, fontWeight: 900 }}>!</div>
           <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>Une erreur est survenue</h2>
           <p style={{ fontSize: 14, opacity: 0.7, marginBottom: 28, maxWidth: 400 }}>
             L'application a rencontré un problème inattendu. Recharge la page pour continuer.

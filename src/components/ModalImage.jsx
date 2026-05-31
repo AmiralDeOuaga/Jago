@@ -11,10 +11,10 @@ export function ModalImage({ annonce, onFullscreen }) {
       <img src={photos[idx]} alt={`${annonce.titre} — photo ${idx + 1}`} className="mimg-real" loading="lazy" onClick={() => onFullscreen(photos, idx)}/>
       <div className="mbadges">
         <span className="bcat">{categories.find(c => c.id === annonce.categorie)?.label}</span>
-        {annonce.urgent && <span className="burg">⚡ Urgent</span>}
+        {annonce.urgent && <span className="burg">Urgent</span>}
       </div>
       {/* Badge agrandir */}
-      <div style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.55)", color: "white", fontSize: 11, padding: "4px 9px", borderRadius: 6, pointerEvents: "none", zIndex: 3 }}>🔍 Agrandir</div>
+      <div style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.55)", color: "white", fontSize: 11, padding: "4px 9px", borderRadius: 6, pointerEvents: "none", zIndex: 3 }}>Agrandir</div>
       {/* Boutons navigation — positionnés séparément */}
       {photos.length > 1 && <>
         <button className="mnav-btn mnav-left" onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + photos.length) % photos.length); }}>‹</button>

@@ -25,10 +25,9 @@ export function MessagesPage({
       {!activeConv ? (
         // Liste des conversations
         <div className="chat-list-wrap">
-          <div className="stitle" style={{marginTop:0}}>💬 Mes messages</div>
+          <div className="stitle" style={{marginTop:0}}>Mes messages</div>
           {conversations.length === 0
             ? <div className="empty">
-                <div className="eico">💬</div>
                 <div className="emsg">Aucune conversation</div>
                 <div className="esub">Contactez un vendeur pour démarrer</div>
               </div>
@@ -40,7 +39,7 @@ export function MessagesPage({
                       <div className="conv-avatar">{getOtherName(conv)?.[0]?.toUpperCase()||"?"}</div>
                       <div className="conv-info">
                         <div className="conv-name" style={hasUnread?{fontWeight:900}:{}}>{getOtherName(conv)}</div>
-                        <div className="conv-annonce">📦 {conv.annonceTitre}</div>
+                        <div className="conv-annonce">{conv.annonceTitre}</div>
                         <div className="conv-last" style={hasUnread?{color:"var(--dark)",fontWeight:700}:{}}>{conv.lastMessage || "Démarrer la conversation"}</div>
                       </div>
                       {hasUnread && <div className="conv-unread">!</div>}
@@ -63,7 +62,7 @@ export function MessagesPage({
                 onClick={() => goToAnnonce(activeConv.annonceId)}
                 title="Voir l'annonce"
               >
-                📦 {activeConv.annonceTitre} <span className="chatroom-annonce-arrow">→</span>
+                {activeConv.annonceTitre} <span className="chatroom-annonce-arrow">→</span>
               </button>
             </div>
           </div>
@@ -79,7 +78,7 @@ export function MessagesPage({
           </div>
           <div className="chatroom-input">
             <input placeholder="Votre message..." value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()}/>
-            <button className="send-btn" onClick={sendMessage}>➤</button>
+            <button className="send-btn" onClick={sendMessage}>→</button>
           </div>
         </div>
       )}

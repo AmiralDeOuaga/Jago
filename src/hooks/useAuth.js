@@ -12,7 +12,8 @@ import {
   signInWithPopup,
   signInWithCredential,
   getRedirectResult,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendEmailVerification
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 
@@ -223,6 +224,7 @@ export function useAuth(showToast) {
         pays: rPays,
         createdAt: serverTimestamp()
       });
+      await sendEmailVerification(cred.user);
       trackEvent("sign_up", { method: "email", pays: rPays });
     } catch(e) {
       if (e.code === "auth/email-already-in-use") {

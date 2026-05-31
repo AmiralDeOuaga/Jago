@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { categories, getVilles, getPays } from "../constants";
 import { CardImage } from "../components/CardImage";
 import { ModalImage } from "../components/ModalImage";
@@ -48,9 +48,17 @@ export function HomePage({
   SignalModal,
 }) {
   const [showCatMenu, setShowCatMenu] = useState(false);
+  const [showVilleMenu, setShowVilleMenu] = useState(false);
   const activeCatLabel = catActive === "tous" ? null : catActive === "favoris" ? "Favoris" : categories.find(c=>c.id===catActive)?.label;
   const villesDuPays = getVilles(userPays);
   const paysInfo = getPays(userPays);
+  const resultsRef = useRef(null);
+
+  const triggerSearch = () => {
+    setSearch(searchInput);
+    setCurrentPage(1);
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  };
 
   return (<>
     <OfflineBanner/><SignalModal/><Toast/>
@@ -61,44 +69,19 @@ export function HomePage({
           <JagoLogo variant="white" height={64}/>
         </div>
         <h1>Achète. Vends. Échanges.<br/><em>Entre particuliers.</em></h1>
-        <p>La marketplace gratuite entre particuliers — simple, rapide, locale. Publie en 2 minutes.</p>
         <div className="sbar">
           <input
             placeholder="téléphone, moto, maison, vêtements…"
             value={searchInput}
             onChange={e=>setSI(e.target.value)}
-            onKeyDown={e=>{if(e.key==="Enter"){setSearch(searchInput);setCurrentPage(1);}}}
+            onKeyDown={e=>{if(e.key==="Enter") triggerSearch();}}
           />
-          <button onClick={()=>{setSearch(searchInput);setCurrentPage(1);}}>Chercher</button>
+          <button onClick={triggerSearch}>Chercher</button>
         </div>
-        {/* Raccourcis catégories */}
-      </section>
-
-      <div className="sec">
-        {/* ── URGENTES ── */}
-        {annonces.filter(a=>a.urgent).length > 0 && <>
-          <div className="sec-title">Annonces urgentes</div>
-          <div className="vedettes-scroll">
-            {annonces.filter(a=>a.urgent).slice(0,12).map(a=>(
-              <div key={a.id} className="vedette-card" onClick={()=>openAd(a)}>
-                <div className="vedette-img">
-                  {a.photos?.[0] && <img src={a.photos[0]} alt={a.titre} loading="lazy"/>}
-                  {!a.photos?.[0] && <span style={{fontSize:42}}>{a.emoji}</span>}
-                  <span className="vedette-badge">Urgent</span>
-                </div>
-                <div className="vedette-body">
-                  <div className="vedette-title">{a.titre}</div>
-                  <div className="vedette-prix">{a.prix}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>}
-
         {/* ── FILTRES & CATÉGORIES ── */}
-        <div className="filter-row">
+        <div className="filter-row hero-filter-row">
           <div style={{position:"relative"}}>
-            <button className={`filter-chip${catActive!=="tous"?" on":""}`} onClick={()=>setShowCatMenu(v=>!v)}>
+            <button className={`filter-chip${catActive!=="tous"?" on":""}`} onClick={()=>{ setShowCatMenu(v=>!v); setShowVilleMenu(false); }}>
               {activeCatLabel || "Catégories"} <span style={{marginLeft:4,fontSize:10}}>{showCatMenu?"▲":"▼"}</span>
             </button>
             {showCatMenu && (
@@ -120,29 +103,41 @@ export function HomePage({
               </div>
             )}
           </div>
-          <button className={`filter-chip${showFiltres?" on":""}`} onClick={()=>setShowFiltres(f=>!f)}>
-            Filtres {(filtreVille!=="toutes"||filtrePrixMin||filtrePrixMax) ? "·" : ""}
+          <div style={{position:"relative"}}>
+            <button className={`filter-chip${filtreVille!=="toutes"?" on":""}`} onClick={()=>{ setShowVilleMenu(v=>!v); setShowCatMenu(false); }}>
+              {filtreVille!=="toutes" ? filtreVille : "Ville"} <span style={{marginLeft:4,fontSize:10}}>{showVilleMenu?"▲":"▼"}</span>
+            </button>
+            {showVilleMenu && (
+              <div className="cat-dropdown" onClick={()=>setShowVilleMenu(false)}>
+                <div className={`cat-drop-item${filtreVille==="toutes"?" on":""}`}
+                  onClick={()=>{setFiltreVille("toutes");setCurrentPage(1);}}>
+                  Toutes les villes
+                </div>
+                {villesDuPays.map(v=>(
+                  <div key={v} className={`cat-drop-item${filtreVille===v?" on":""}`}
+                    onClick={()=>{setFiltreVille(v);setCurrentPage(1);}}>
+                    {v}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <button className={`filter-chip${showFiltres?" on":""}`} onClick={()=>{ setShowFiltres(f=>!f); setShowCatMenu(false); setShowVilleMenu(false); }}>
+            Prix {(filtrePrixMin||filtrePrixMax) ? "·" : ""}
           </button>
           {search && (
             <button className="filter-chip" onClick={()=>{setSI("");setSearch("");setCurrentPage(1);}}>
               ✕ "{search}"
             </button>
           )}
-          {(filtreVille!=="toutes"||filtrePrixMin||filtrePrixMax) && (
-            <button className="filter-chip" onClick={()=>{setFiltreVille("toutes");setFiltrePrixMin("");setFiltrePrixMax("");}}>
-              ✕ Effacer filtres
+          {(filtrePrixMin||filtrePrixMax) && (
+            <button className="filter-chip" onClick={()=>{setFiltrePrixMin("");setFiltrePrixMax("");}}>
+              ✕ Réinitialiser le prix
             </button>
           )}
         </div>
         {showFiltres && (
-          <div className="filter-panel">
-            <div>
-              <label className="filter-label">Ville</label>
-              <select className="fs" value={filtreVille} onChange={e=>setFiltreVille(e.target.value)}>
-                <option value="toutes">Toutes les villes</option>
-                {villesDuPays.map(v=><option key={v}>{v}</option>)}
-              </select>
-            </div>
+          <div className="filter-panel" style={{maxWidth:580,margin:"0 auto",width:"100%"}}>
             <div>
               <label className="filter-label">Prix min (FCFA)</label>
               <input className="fi" placeholder="Ex : 50 000" value={filtrePrixMin} onChange={e=>setFiltrePrixMin(e.target.value)}/>
@@ -151,11 +146,33 @@ export function HomePage({
               <label className="filter-label">Prix max (FCFA)</label>
               <input className="fi" placeholder="Ex : 5 000 000" value={filtrePrixMax} onChange={e=>setFiltrePrixMax(e.target.value)}/>
             </div>
-            <button className="filter-reset" onClick={()=>{setFiltreVille("toutes");setFiltrePrixMin("");setFiltrePrixMax("");}}>
-              Réinitialiser les filtres
+            <button className="filter-reset" onClick={()=>{setFiltrePrixMin("");setFiltrePrixMax("");}}>
+              Réinitialiser le prix
             </button>
           </div>
         )}
+      </section>
+
+      <div className="sec" ref={resultsRef}>
+        {/* ── URGENTES ── */}
+        {filtered.filter(a=>a.urgent).length > 0 && <>
+          <div className="sec-title">Annonces urgentes</div>
+          <div className="vedettes-scroll">
+            {filtered.filter(a=>a.urgent).slice(0,12).map(a=>(
+              <div key={a.id} className="vedette-card" onClick={()=>openAd(a)}>
+                <div className="vedette-img">
+                  {a.photos?.[0] && <img src={a.photos[0]} alt={a.titre} loading="lazy"/>}
+                  {!a.photos?.[0] && <span style={{fontSize:42}}>{a.emoji}</span>}
+                  <span className="vedette-badge">Urgent</span>
+                </div>
+                <div className="vedette-body">
+                  <div className="vedette-title">{a.titre}</div>
+                  <div className="vedette-prix">{a.prix}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>}
 
 
         {filtered.length === 0
@@ -170,7 +187,7 @@ export function HomePage({
                   <CardImage annonce={a}/>
                   {a.userId === user.uid && <span className="bmine">Ma annonce</span>}
                   <button className="fav-btn" onClick={e=>{e.stopPropagation();toggleFavori(a.id);}}>
-                    {favoris.includes(a.id) ? "❤️" : "🤍"}
+                    {favoris.includes(a.id) ? "♥" : "♡"}
                   </button>
                 </div>
                 <div className="cbody">
@@ -235,42 +252,6 @@ export function HomePage({
               </div>
               <div className="mdesc">{selected.description}</div>
 
-              {/* NOTATION VENDEUR */}
-              <div className="rating-box">
-                <div className="rating-title">Notation du vendeur</div>
-                <div className="rating-avg">
-                  <span className="rating-avg-n">{avgRating(ratings)}</span>
-                  <div>
-                    <div className="stars">{[1,2,3,4,5].map(i=><span key={i} style={{color:i<=Math.round(avgRating(ratings))?"#FFD93D":"#ccc",fontSize:18}}>★</span>)}</div>
-                    <div className="rating-count">{ratings.length} avis</div>
-                  </div>
-                </div>
-
-                {/* Donner un avis */}
-                {selected.userId !== user.uid && <>
-                  <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:6}}>Votre avis :</div>
-                  <div className="stars" style={{marginBottom:8}}>
-                    {[1,2,3,4,5].map(i=>(
-                      <span key={i} className="star" onClick={()=>setMyRating(i)} style={{color:i<=myRating?"#FFD93D":"#ccc",fontSize:22,cursor:"pointer"}}>★</span>
-                    ))}
-                  </div>
-                  <textarea className="rating-comment" placeholder="Laissez un commentaire (optionnel)..." value={myComment} onChange={e=>setMyComment(e.target.value)}/>
-                  <button className="fb" style={{marginTop:8,padding:"10px"}} onClick={()=>submitRating(selected.userId)}>Envoyer mon avis</button>
-                </>}
-
-                {/* Avis existants */}
-                {ratings.length > 0 && <div style={{marginTop:12}}>
-                  {ratings.slice(0,3).map(r=>(
-                    <div key={r.id} className="review-item">
-                      <div className="review-header">
-                        <span className="review-name">{r.buyerName}</span>
-                        <span className="review-date">{[1,2,3,4,5].map(i=>i<=r.note?"★":"☆").join("")}</span>
-                      </div>
-                      {r.commentaire && <div className="review-text">{r.commentaire}</div>}
-                    </div>
-                  ))}
-                </div>}
-              </div>
               <div className="macts">
                 <button className="mclose" onClick={() => setSelected(null)}>Fermer</button>
                 <button className="mclose" style={{color:"#f87171",borderColor:"rgba(239,68,68,.4)"}} onClick={()=>reportAd(selected)}>Signaler</button>

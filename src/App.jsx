@@ -6,7 +6,7 @@ import {
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
-import { ADMIN_UID, catEmojis, getPays } from "./constants";
+import { ADMIN_UID, catEmojis, getPays, getVilles } from "./constants";
 import { Capacitor } from "@capacitor/core";
 import { useAuth } from "./hooks/useAuth";
 import { JagoLogo } from "./components/JagoLogo";
@@ -152,9 +152,10 @@ export default function Jago() {
 
   // ── Admin ──────────────────────────────────────────────────
   const isAdmin = user?.uid === ADMIN_UID;
-  const [adminTab, setAdminTab]       = useState("annonces");
+  const [adminTab, setAdminTab]         = useState("annonces");
   const [signalements, setSignalements] = useState([]);
-  const [allUsers, setAllUsers]       = useState([]);
+  const [allUsers, setAllUsers]         = useState([]);
+  const [changeRequests, setChangeRequests] = useState([]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -167,6 +168,11 @@ export default function Jago() {
       } catch(e) { console.error(e); }
     };
     loadAdmin();
+    const unsub = onSnapshot(
+      query(collection(db, "changeRequests"), where("status", "==", "en_attente")),
+      snap => setChangeRequests(snap.docs.map(d => ({ ...d.data() })))
+    );
+    return () => unsub();
   }, [isAdmin]);
 
   const adminDeleteAd = async (id) => {
@@ -181,6 +187,21 @@ export default function Jago() {
     try {
       await deleteDoc(doc(db, "signalements", id));
       setSignalements(p => p.filter(s => s.id !== id));
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
+  };
+
+  const approveChangeRequest = async (r) => {
+    try {
+      await updateDoc(doc(db, "users", r.uid), { pays: r.requestedPays });
+      await updateDoc(doc(db, "changeRequests", r.uid), { status: "approuvé" });
+      showToast(`Pays de ${r.pseudo || r.email} mis à jour !`);
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
+  };
+
+  const rejectChangeRequest = async (r) => {
+    try {
+      await updateDoc(doc(db, "changeRequests", r.uid), { status: "refusé" });
+      showToast(`Demande de ${r.pseudo || r.email} refusée.`);
     } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
@@ -275,6 +296,30 @@ export default function Jago() {
     setSubmitting(false);
   };
 
+  // ── Demande changement pays ─────────────────────────────────
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const [paysNotif, setPaysNotif]           = useState(null); // {type, pays}
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, "changeRequests", user.uid), snap => {
+      if (!snap.exists()) { setPendingRequest(null); return; }
+      const data = snap.data();
+      setPendingRequest(data);
+      if (data.status === "approuvé") {
+        const newPays = data.requestedPays;
+        setUserPays(newPays);
+        setPVille(getVilles(newPays)[0] || "");
+        deleteDoc(doc(db, "changeRequests", user.uid));
+        setPaysNotif({ type: "approuvé", pays: newPays });
+      }
+      if (data.status === "refusé") {
+        deleteDoc(doc(db, "changeRequests", user.uid));
+        setPaysNotif({ type: "refusé", pays: data.requestedPays });
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
   // ── Messagerie ─────────────────────────────────────────────
   const [conversations, setConversations] = useState([]);
   const [activeConv, setActiveConv]       = useState(null);
@@ -309,7 +354,8 @@ export default function Jago() {
     const convId = [user.uid, annonce.userId].sort().join("_") + "_" + annonce.id;
     const convRef = doc(db, "conversations", convId);
     const convSnap = await getDoc(convRef);
-    if (!convSnap.exists()) {
+    const isNew = !convSnap.exists();
+    if (isNew) {
       await setDoc(convRef, {
         participants: [user.uid, annonce.userId],
         buyerId: user.uid, buyerName: user.displayName,
@@ -319,7 +365,8 @@ export default function Jago() {
         lastSenderId: "", [`read_${user.uid}`]: true, [`read_${annonce.userId}`]: false,
       });
     }
-    setActiveConv({ id: convId, annonceTitre: annonce.titre, buyerName: user.displayName, sellerName: annonce.vendeur, sellerId: annonce.userId, buyerId: user.uid });
+    setActiveConv({ id: convId, annonceTitre: annonce.titre, buyerName: user.displayName, sellerName: annonce.vendeur, sellerId: annonce.userId, buyerId: user.uid, annonceId: annonce.id });
+    if (isNew) setNewMsg(`Bonjour, est-ce que "${annonce.titre}" est toujours disponible ?`);
     setSelected(null);
     setPage("messages");
   };
@@ -384,7 +431,7 @@ export default function Jago() {
         setRatings(p => [{ id: ref.id, ...newR }, ...p]);
       }
       setMyRating(0); setMyComment("");
-      showToast("✅ Merci pour votre avis !");
+      showToast("Merci pour votre avis !");
     } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
@@ -462,6 +509,40 @@ export default function Jago() {
     } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
+  // ── Changer de pays ────────────────────────────────────────
+  const changePays = async (newPays) => {
+    try {
+      if (user?.uid === ADMIN_UID) {
+        await updateDoc(doc(db, "users", user.uid), { pays: newPays });
+        // Nettoyer toute demande résiduelle
+        try { await deleteDoc(doc(db, "changeRequests", user.uid)); } catch(_) {}
+        setUserPays(newPays);
+        setPVille(getVilles(newPays)[0] || "");
+        setPendingRequest(null);
+        showToast("Pays mis à jour !");
+        return;
+      }
+      const reqRef = doc(db, "changeRequests", user.uid);
+      const existing = await getDoc(reqRef);
+      if (existing.exists() && existing.data().status === "en_attente") {
+        showToast("Une demande est déjà en cours.", "warn"); return;
+      }
+      await setDoc(reqRef, {
+        uid: user.uid,
+        pseudo: user.displayName,
+        email: user.email,
+        currentPays: userPays,
+        requestedPays: newPays,
+        status: "en_attente",
+        createdAt: serverTimestamp(),
+      });
+      showToast("Demande envoyée, en attente de validation !");
+    } catch(e) {
+      console.error("changePays error:", e);
+      showToast("Erreur : " + e.message, "warn");
+    }
+  };
+
   // ── Logout ─────────────────────────────────────────────────
   const logout = () => {
     signOut(auth);
@@ -497,7 +578,7 @@ export default function Jago() {
           console.error("Erreur d'enregistrement push:", JSON.stringify(err));
         });
         PushNotifications.addListener("pushNotificationReceived", (notification) => {
-          showToast(`💬 ${notification.title}: ${notification.body}`, "info");
+          showToast(`${notification.title}: ${notification.body}`, "info");
         });
         PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
           const data = action.notification.data;
@@ -513,7 +594,7 @@ export default function Jago() {
   // ── Shared UI fragments ────────────────────────────────────
   const OfflineBanner = () => !isOnline ? (
     <div className="offline-banner">
-      <span>📵</span> Pas de connexion internet — certaines fonctions sont indisponibles
+      Pas de connexion internet — certaines fonctions sont indisponibles
     </div>
   ) : null;
 
@@ -558,12 +639,74 @@ export default function Jago() {
     </div></header>
   );
 
-  const Footer = () => (
-    <footer className="footer"><strong>Jago</strong> &nbsp;·&nbsp; Vente entre particuliers · UEMOA · 2026</footer>
-  );
+  const Footer = () => null;
 
   // ── Loading ────────────────────────────────────────────────
   if (loading) return <div className="loading">Chargement…</div>;
+
+  // ── Notification changement de pays ────────────────────────
+  if (paysNotif) {
+    const approved = paysNotif.type === "approuvé";
+    const paysInfo = getPays(paysNotif.pays);
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(10,36,99,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+        <div style={{background:"var(--surface)",borderRadius:20,padding:"32px 28px",maxWidth:360,width:"100%",textAlign:"center",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+          <div style={{fontSize:40,marginBottom:16}}>{approved ? "✓" : "✕"}</div>
+          <h2 style={{fontFamily:"Montserrat",fontSize:18,fontWeight:900,marginBottom:12,color:approved?"var(--blue)":"var(--red)"}}>
+            {approved ? "Demande approuvée" : "Demande refusée"}
+          </h2>
+          {approved ? (
+            <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,marginBottom:24}}>
+              Votre demande de changement de pays a été <strong>approuvée</strong>.<br/>
+              Votre pays est maintenant :<br/>
+              <strong style={{color:"var(--dark)",fontSize:16}}>
+                <img src={`https://flagcdn.com/w20/${paysNotif.pays}.png`} alt="" style={{width:18,height:13,objectFit:"cover",borderRadius:2,verticalAlign:"middle",marginRight:6}}/>
+                {paysInfo.label}
+              </strong>
+            </p>
+          ) : (
+            <p style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,marginBottom:24}}>
+              Votre demande de changement vers <strong>{paysInfo.label}</strong> a été <strong>refusée</strong>.<br/>
+              Votre pays reste inchangé. Contactez un administrateur pour plus d'informations.
+            </p>
+          )}
+          <button className="fb" onClick={() => setPaysNotif(null)}>
+            Compris
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Email verification screen ───────────────────────────────
+  if (user && !user.emailVerified && user.providerData?.[0]?.providerId === "password") {
+    const resendVerif = async () => {
+      try {
+        const { sendEmailVerification } = await import("firebase/auth");
+        await sendEmailVerification(user);
+        showToast("Email renvoyé !");
+      } catch(e) { showToast("Erreur, réessaie dans quelques secondes.", "warn"); }
+    };
+    const checkVerif = async () => {
+      await user.reload();
+      if (user.emailVerified) window.location.reload();
+      else showToast("Email pas encore vérifié. Vérifie ta boîte mail.", "warn");
+    };
+    return (
+      <div className="auth-wrap"><Toast/>
+        <div className="auth-box" style={{textAlign:"center"}}>
+          <h2 style={{fontFamily:"Montserrat",marginBottom:8}}>Vérifie ta boîte mail</h2>
+          <p style={{color:"var(--muted)",fontSize:14,marginBottom:24}}>
+            Un email de confirmation a été envoyé à <strong>{user.email}</strong>.<br/>
+            Clique sur le lien reçu puis reviens ici.
+          </p>
+          <button className="fb" style={{marginBottom:10}} onClick={checkVerif}>J'ai vérifié mon email</button>
+          <button className="btn-o" style={{width:"100%",marginBottom:10}} onClick={resendVerif}>Renvoyer l'email</button>
+          <button className="btn-o" style={{width:"100%",opacity:.6}} onClick={()=>signOut(auth)}>Se déconnecter</button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Auth screen ────────────────────────────────────────────
   if (!user) return (<>
@@ -649,6 +792,16 @@ export default function Jago() {
     <ProfilePage
       user={user}
       userPays={userPays}
+      paysList={paysList}
+      changePays={changePays}
+      pendingRequest={pendingRequest}
+      cancelChangeRequest={async () => {
+        try {
+          await deleteDoc(doc(db, "changeRequests", user.uid));
+          setPendingRequest(null);
+          showToast("Demande annulée.");
+        } catch(e) { showToast("Erreur : " + e.message, "warn"); }
+      }}
       myAds={myAds}
       setSelected={setSelected}
       startEdit={startEdit}
@@ -664,9 +817,12 @@ export default function Jago() {
       annonces={annonces}
       allUsers={allUsers}
       signalements={signalements}
+      changeRequests={changeRequests}
       adminTab={adminTab} setAdminTab={setAdminTab}
       adminDeleteAd={adminDeleteAd}
       adminDeleteSignalement={adminDeleteSignalement}
+      approveChangeRequest={approveChangeRequest}
+      rejectChangeRequest={rejectChangeRequest}
       setPage={setPage}
       Header={Header} Footer={Footer}
     />

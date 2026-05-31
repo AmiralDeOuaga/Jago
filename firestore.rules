@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'VE183TvlMgNxmiO9kJjzX6IlzNg1';
+    }
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Utilisateurs
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Annonces
+    match /annonces/{annonceId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Conversations
+    match /conversations/{convId} {
+      allow read, update: if isAuth() && (
+        !exists(/databases/$(database)/documents/conversations/$(convId)) ||
+        request.auth.uid in resource.data.participants
+      );
+      allow create: if isAuth();
+
+      match /messages/{msgId} {
+        allow read, create: if isAuth();
+      }
+    }
+
+    // Signalements
+    match /signalements/{sigId} {
+      allow create: if isAuth();
+      allow read, delete: if isAdmin();
+    }
+
+    // Demandes de changement de pays
+    match /changeRequests/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Avis / Ratings
+    match /ratings/{ratingId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+    }
+  }
+}

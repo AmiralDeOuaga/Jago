@@ -8,17 +8,17 @@ export const CLOUDINARY_UPLOAD_PRESET = "yo man";
 // ─────────────────────────────────────────────────────────────
 
 export const categories = [
-  { id: "immobilier",   label: "Immobilier",       icon: "🏠" },
-  { id: "vehicules",    label: "Véhicules",         icon: "🚗" },
-  { id: "electronique", label: "Électronique",      icon: "📱" },
-  { id: "agriculture",  label: "Agriculture",       icon: "🌾" },
-  { id: "vetements",    label: "Vêtements & Mode",  icon: "👗" },
-  { id: "maison",       label: "Maison & Mobilier", icon: "🛋️" },
-  { id: "emploi",       label: "Emploi & Services", icon: "💼" },
-  { id: "education",    label: "Éducation",         icon: "📚" },
-  { id: "alimentation", label: "Alimentation",      icon: "🍎" },
-  { id: "sante",        label: "Santé & Beauté",    icon: "⚕️" },
-  { id: "animaux",      label: "Animaux",           icon: "🐄" },
+  { id: "immobilier",   label: "Immobilier",       icon: "" },
+  { id: "vehicules",    label: "Véhicules",         icon: "" },
+  { id: "electronique", label: "Électronique",      icon: "" },
+  { id: "agriculture",  label: "Agriculture",       icon: "" },
+  { id: "vetements",    label: "Vêtements & Mode",  icon: "" },
+  { id: "maison",       label: "Maison & Mobilier", icon: "" },
+  { id: "emploi",       label: "Emploi & Services", icon: "" },
+  { id: "education",    label: "Éducation",         icon: "" },
+  { id: "alimentation", label: "Alimentation",      icon: "" },
+  { id: "sante",        label: "Santé & Beauté",    icon: "" },
+  { id: "animaux",      label: "Animaux",           icon: "" },
 ];
 
 export const catEmojis = {
@@ -104,6 +104,18 @@ export const getVilles = (paysId) => villesParPays[paysId] || villesParPays["bf"
 
 // Infos d'un pays
 export const getPays = (paysId) => pays.find(p => p.id === paysId) || pays[0];
+
+// Exemples de quartiers par pays
+export const quartiersExemples = {
+  bf: "Ouaga 2000",
+  ci: "Cocody",
+  ml: "Hippodrome",
+  sn: "Plateau",
+  ne: "Plateau",
+  tg: "Bè",
+  bj: "Cadjehoun",
+  gw: "Bairro de Djeu",
+};
 
 // ─── Compatibilité ancienne version (Burkina) ─────────────────
 export const villes = villesParPays.bf;

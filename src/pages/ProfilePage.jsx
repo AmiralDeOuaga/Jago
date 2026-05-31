@@ -1,9 +1,16 @@
+import { useState } from "react";
 import { CardImage } from "../components/CardImage";
 import { getPays } from "../constants";
+
+
 
 export function ProfilePage({
   user,
   userPays,
+  paysList,
+  changePays,
+  pendingRequest,
+  cancelChangeRequest,
   myAds,
   setSelected,
   startEdit,
@@ -15,6 +22,8 @@ export function ProfilePage({
   Toast,
 }) {
   const paysInfo = getPays(userPays);
+  const [showPays, setShowPays] = useState(false);
+
   return (<>
     <OfflineBanner/><Toast/>
     <div className="app"><Header/>
@@ -24,11 +33,40 @@ export function ProfilePage({
           <div className="avatar">{user.displayName?.[0] || "?"}</div>
           <div className="pinfo">
             <h2>{user.displayName}</h2>
-            <p>📧 {user.email}</p>
-            <p style={{display:"flex",alignItems:"center",gap:6,marginTop:4,fontSize:13,color:"var(--gray4)"}}>
+            <p>{user.email}</p>
+            <p style={{display:"flex",alignItems:"center",gap:6,marginTop:4,fontSize:13,color:"#fff",fontWeight:600}}>
               <img src={`https://flagcdn.com/w20/${userPays}.png`} alt={paysInfo.label} style={{width:18,height:13,objectFit:"cover",borderRadius:2}}/>
               {paysInfo.label}
+              {!pendingRequest && (
+                <button
+                  onClick={() => setShowPays(v => !v)}
+                  style={{marginLeft:6,fontSize:11,color:"#fff",background:"var(--blue)",border:"none",cursor:"pointer",fontWeight:700,padding:"3px 10px",borderRadius:20}}>
+                  {showPays ? "Annuler" : "Changer"}
+                </button>
+              )}
             </p>
+            {pendingRequest && pendingRequest.status === "en_attente" && (
+              <div style={{marginTop:6,fontSize:12,color:"#FFD93D",fontWeight:700,display:"flex",alignItems:"center",flexWrap:"wrap",gap:6}}>
+                <span>Demande de changement de pays en cours</span>
+                <img src={`https://flagcdn.com/w20/${pendingRequest.requestedPays}.png`} alt="" style={{width:16,height:11,objectFit:"cover",borderRadius:2}}/>
+                <span>{getPays(pendingRequest.requestedPays).label}</span>
+                <span style={{opacity:.7,fontWeight:400}}>— en attente de validation</span>
+                <button onClick={cancelChangeRequest} style={{marginLeft:4,fontSize:11,color:"#fff",background:"rgba(239,68,68,.7)",border:"none",cursor:"pointer",fontWeight:700,padding:"3px 10px",borderRadius:20}}>
+                  Annuler
+                </button>
+              </div>
+            )}
+            {showPays && !pendingRequest && (
+              <div className="pays-grid" style={{marginTop:10}}>
+                {paysList.filter(p => p.id !== userPays).map(p => (
+                  <div key={p.id} className="pays-card"
+                    onClick={() => { changePays(p.id); setShowPays(false); }}>
+                    <img className="pays-flag" src={`https://flagcdn.com/w40/${p.id}.png`} alt={p.label}/>
+                    <span className="pays-name">{p.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="pstats">
               <div><div className="psn">{myAds.length}</div><div className="psl">Annonces</div></div>
               <div><div className="psn">{myAds.reduce((s,a)=>s+(a.vues||0),0)}</div><div className="psl">Vues totales</div></div>
@@ -39,17 +77,16 @@ export function ProfilePage({
 
         {/* Stats détaillées */}
         <div className="stats-grid">
-          <div className="stat-card"><div className="stat-card-n">{myAds.length}</div><div className="stat-card-l">📋 Annonces</div></div>
-          <div className="stat-card"><div className="stat-card-n">{myAds.reduce((s,a)=>s+(a.vues||0),0)}</div><div className="stat-card-l">👁️ Vues</div></div>
-          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.categorie==="immobilier").length}</div><div className="stat-card-l">🏠 Immo</div></div>
-          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.categorie==="vehicules").length}</div><div className="stat-card-l">🚗 Véhicules</div></div>
-          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.categorie==="electronique").length}</div><div className="stat-card-l">📱 Électro</div></div>
-          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.urgent).length}</div><div className="stat-card-l">⚡ Urgentes</div></div>
+          <div className="stat-card"><div className="stat-card-n">{myAds.length}</div><div className="stat-card-l">Annonces</div></div>
+          <div className="stat-card"><div className="stat-card-n">{myAds.reduce((s,a)=>s+(a.vues||0),0)}</div><div className="stat-card-l">Vues</div></div>
+          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.categorie==="immobilier").length}</div><div className="stat-card-l">Immo</div></div>
+          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.categorie==="vehicules").length}</div><div className="stat-card-l">Véhicules</div></div>
+          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.categorie==="electronique").length}</div><div className="stat-card-l">Électro</div></div>
+          <div className="stat-card"><div className="stat-card-n">{myAds.filter(a=>a.urgent).length}</div><div className="stat-card-l">Urgentes</div></div>
         </div>
         <div className="stitle">Mes annonces</div>
         {myAds.length === 0
           ? <div className="empty">
-              <div className="eico">📭</div>
               <div className="emsg">Aucune annonce publiée</div>
               <div className="esub">Publiez votre première annonce !</div>
             </div>
@@ -61,11 +98,15 @@ export function ProfilePage({
                 <div className="cbody">
                   <div className="ctitle">{a.titre}</div>
                   <div className="cprix">{a.prix}</div>
-                  <div className="clieu">📍 {a.quartier}, {a.ville}</div>
+                  <div className="clieu">{a.quartier}, {a.ville}</div>
+                  <div style={{fontSize:11,color:"var(--muted)",marginTop:2,display:"flex",alignItems:"center",gap:4}}>
+                    <img src={`https://flagcdn.com/w20/${a.pays||"bf"}.png`} alt="" style={{width:14,height:10,objectFit:"cover",borderRadius:2}}/>
+                    {getPays(a.pays||"bf").label}
+                  </div>
                   <div className="cdesc">{a.description}</div>
                   <div style={{display:"flex",gap:8,marginTop:"auto",paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                    <button className="del-btn" style={{background:"rgba(23,86,200,.1)",color:"#7ab3ff",border:"1px solid rgba(23,86,200,.3)"}} onClick={e=>{e.stopPropagation();startEdit(a);}}>✏️ Modifier</button>
-                    <button className="del-btn" onClick={e=>{e.stopPropagation();deleteAd(a.id);}}>🗑️ Suppr.</button>
+                    <button className="del-btn" style={{background:"rgba(23,86,200,.1)",color:"#7ab3ff",border:"1px solid rgba(23,86,200,.3)"}} onClick={e=>{e.stopPropagation();startEdit(a);}}>Modifier</button>
+                    <button className="del-btn" onClick={e=>{e.stopPropagation();deleteAd(a.id);}}>Supprimer</button>
                   </div>
                 </div>
               </div>
