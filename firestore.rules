@@ -16,17 +16,17 @@ service cloud.firestore {
       allow write: if isAuth() && (request.auth.uid == userId || isAdmin());
     }
 
-    // Annonces
+    // Annonces — lecture publique pour que les non-connectés puissent voir
     match /annonces/{annonceId} {
-      allow read: if isAuth();
+      allow read: if true;
       allow create: if isAuth();
       allow update, delete: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Conversations
     match /conversations/{convId} {
-      allow read, update: if isAuth() && (
-        !exists(/databases/$(database)/documents/conversations/$(convId)) ||
+      allow read, write: if isAuth() && (
+        resource == null ||
         request.auth.uid in resource.data.participants
       );
       allow create: if isAuth();
@@ -50,8 +50,13 @@ service cloud.firestore {
 
     // Avis / Ratings
     match /ratings/{ratingId} {
-      allow read: if isAuth();
+      allow read: if true;
       allow create: if isAuth();
+    }
+
+    // Tout le reste — accès auth par défaut
+    match /{document=**} {
+      allow read, write: if isAuth();
     }
   }
 }

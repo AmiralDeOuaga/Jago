@@ -398,13 +398,12 @@ option { background:var(--surface); color:var(--text); }
 .ferr { background:rgba(220,38,38,.08); border:1.5px solid rgba(220,38,38,.2); border-radius:12px; padding:11px 14px; font-size:13px; color:var(--red); margin-bottom:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
 .fhint { font-size:11px; color:var(--muted); margin-top:4px; }
 
-.pays-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
-@media(max-width:480px){ .pays-grid{ grid-template-columns:repeat(2,1fr); } }
-.pays-card { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-radius:12px; border:2px solid var(--line); background:var(--surface); cursor:pointer; transition:all .18s; }
+.pays-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; width:100%; box-sizing:border-box; }
+.pays-card { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border-radius:12px; border:2px solid var(--line); background:var(--surface); cursor:pointer; transition:all .18s; min-width:0; overflow:hidden; }
 .pays-card:hover { border-color:var(--blue); background:rgba(23,86,200,.04); }
 .pays-card.on { border-color:var(--blue); background:var(--dark); }
-.pays-flag { width:34px; height:auto; border-radius:4px; display:block; object-fit:cover; }
-.pays-name { font-size:10px; font-weight:700; color:var(--ink-2); text-align:center; font-family:'Montserrat',sans-serif; line-height:1.2; }
+.pays-flag { width:32px; height:22px; border-radius:4px; display:block; object-fit:cover; flex-shrink:0; }
+.pays-name { font-size:9px; font-weight:700; color:var(--ink-2); text-align:center; font-family:'Montserrat',sans-serif; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
 .pays-card.on .pays-name { color:#fff; }
 .frow { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .google-btn { width:100%; background:var(--surface); color:var(--text); border:1.5px solid var(--line-2); border-radius:12px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; font-family:'Montserrat',sans-serif; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px; }

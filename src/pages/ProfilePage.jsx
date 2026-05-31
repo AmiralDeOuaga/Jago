@@ -107,8 +107,12 @@ export function ProfilePage({
                   </div>
                   <div className="cdesc">{a.description}</div>
                   <div style={{display:"flex",gap:8,marginTop:"auto",paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                    <button className="del-btn" style={{background:"rgba(23,86,200,.1)",color:"#7ab3ff",border:"1px solid rgba(23,86,200,.3)"}} onClick={e=>{e.stopPropagation();startEdit(a);}}>Modifier</button>
-                    <button className="del-btn icon-only" onClick={e=>{e.stopPropagation();deleteAd(a.id);}}>🗑</button>
+                    <button className="del-btn" style={{flex:1,background:"rgba(23,86,200,.1)",color:"#7ab3ff",border:"1px solid rgba(23,86,200,.3)"}} onClick={e=>{e.stopPropagation();startEdit(a);}}>Modifier</button>
+                    <button className="del-btn" style={{flex:"0 0 auto",padding:"6px 10px"}} onClick={e=>{e.stopPropagation();deleteAd(a.id);}}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
