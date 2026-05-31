@@ -8,6 +8,7 @@ export function MessagesPage({
   newMsg, setNewMsg,
   sendMessage,
   getOtherName,
+  goToAnnonce,
   messagesEndRef,
   unreadCount,
   page, setPage,
@@ -57,7 +58,13 @@ export function MessagesPage({
             <div className="conv-avatar" style={{width:38,height:38,fontSize:16}}>{getOtherName(activeConv)?.[0]||"?"}</div>
             <div className="chatroom-info">
               <h3>{getOtherName(activeConv)}</h3>
-              <p>📦 {activeConv.annonceTitre}</p>
+              <button
+                className="chatroom-annonce-link"
+                onClick={() => goToAnnonce(activeConv.annonceId)}
+                title="Voir l'annonce"
+              >
+                📦 {activeConv.annonceTitre} <span className="chatroom-annonce-arrow">→</span>
+              </button>
             </div>
           </div>
           <div className="chatroom-messages">

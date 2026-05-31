@@ -343,6 +343,17 @@ export default function Jago() {
 
   const getOtherName = (conv) => conv.sellerId === user.uid ? conv.buyerName : conv.sellerName;
 
+  const goToAnnonce = async (annonceId) => {
+    if (!annonceId) return;
+    try {
+      const snap = await getDoc(doc(db, "annonces", annonceId));
+      if (snap.exists()) {
+        setSelected({ id: snap.id, ...snap.data() });
+        setPage("home");
+      }
+    } catch(e) { console.error("goToAnnonce", e); }
+  };
+
   // ── Ratings ────────────────────────────────────────────────
   const [ratings, setRatings]         = useState([]);
   const [myRating, setMyRating]       = useState(0);
@@ -670,6 +681,7 @@ export default function Jago() {
       newMsg={newMsg} setNewMsg={setNewMsg}
       sendMessage={sendMessage}
       getOtherName={getOtherName}
+      goToAnnonce={goToAnnonce}
       messagesEndRef={messagesEndRef}
       unreadCount={unreadCount}
       page={page} setPage={setPage}
