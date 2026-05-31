@@ -16,7 +16,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Fond bleu synchrone — évite tout flash blanc avant le splash
         let jagoBlue = UIColor(red: 0.039, green: 0.141, blue: 0.388, alpha: 1.0)
         window?.backgroundColor = jagoBlue
-        UIApplication.shared.windows.first?.backgroundColor = jagoBlue
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let keyWindow = windowScene.keyWindow {
+            keyWindow.backgroundColor = jagoBlue
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             self.disableHorizontalSwipe()
         }
