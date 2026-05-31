@@ -25,7 +25,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     private func disableHorizontalSwipe() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else { return }
+              let window = windowScene.keyWindow else { return }
         self.findAndFixWebViews(in: window)
     }
 
