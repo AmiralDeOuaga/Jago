@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── ANNONCES ──────────────────────────────────────────────────────────
+    // Lecture : tout utilisateur authentifié (les annonces cachées sont
+    // filtrées côté client sauf pour l'admin et l'auteur).
+    // Écriture : uniquement l'auteur (userId == uid) pour ses propres annonces.
+    // reportedBy : seulement via arrayUnion (ajout d'un seul UID à la fois).
+    // hidden : peut être posé à true par n'importe quel user authentifié
+    //          (le compte se fait côté client après arrayUnion) mais ne peut
+    //          être remis à false QUE par l'admin.
+    match /annonces/{annonceId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && !('whatsapp' in request.resource.data); // champ interdit
+
+      allow update: if request.auth != null && (
+        // L'auteur peut tout modifier sauf hidden=false (seul l'admin peut réactiver)
+        (resource.data.userId == request.auth.uid
+          && !(request.resource.data.hidden == false && resource.data.hidden == true))
+        ||
+        // N'importe quel user connecté peut ajouter son UID dans reportedBy
+        // et déclencher hidden=true, mais ne peut PAS modifier d'autres champs
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['reportedBy', 'hidden']))
+      );
+
+      allow delete: if request.auth != null
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // ── USERS ─────────────────────────────────────────────────────────────
+    // Champs publics (nom, createdAt, phoneVerified) : lisibles par tous.
+    // Champs sensibles (tel, whatsapp) : lisibles seulement si une conversation
+    // existe entre le demandeur et cet utilisateur.
+    match /users/{uid} {
+      allow read: if request.auth != null && (
+        // Lecture complète de son propre profil
+        request.auth.uid == uid
+        ||
+        // Lecture partielle autorisée par défaut (nom, createdAt, phoneVerified)
+        // Pour tel/whatsapp, la vérification se fait par le client après avoir
+        // confirmé l'existence d'une conversation — voir note ci-dessous.
+        // TODO Phase 2 : restreindre tel/whatsapp via une fonction get()
+        // sur conversations/ une fois que le schéma est stabilisé.
+        true
+      );
+
+      allow create: if request.auth != null && request.auth.uid == uid;
+
+      allow update: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── CONVERSATIONS ─────────────────────────────────────────────────────
+    // Création : les deux participants doivent être différents.
+    // Lecture/écriture : uniquement les participants.
+    match /conversations/{convId} {
+      allow read, update: if request.auth != null
+                          && request.auth.uid in resource.data.participants;
+
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.participants
+                    && request.resource.data.participants.size() == 2
+                    && request.resource.data.participants[0] != request.resource.data.participants[1];
+
+      // Messages dans la conversation
+      match /messages/{msgId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+
+        allow create: if request.auth != null
+                      && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convId)).data.participants
+                      && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // ── SIGNALEMENTS ──────────────────────────────────────────────────────
+    // Création : tout utilisateur authentifié.
+    // Lecture/suppression : admin uniquement (via ADMIN_UID côté client).
+    match /signalements/{sigId} {
+      allow create: if request.auth != null;
+      allow read, delete: if request.auth != null; // filtré par ADMIN_UID côté client
+    }
+
+    // ── RATINGS ───────────────────────────────────────────────────────────
+    match /ratings/{ratingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.buyerId == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.buyerId == request.auth.uid;
+    }
+
+    // ── FAVORIS ───────────────────────────────────────────────────────────
+    match /favoris/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

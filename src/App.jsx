@@ -13,7 +13,9 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  RecaptchaVerifier,
+  linkWithPhoneNumber
 } from "firebase/auth";
 
 // ─────────────────────────────────────────────────────────────
@@ -59,8 +61,6 @@ const villes = [
   "Thiou", "Seguenega", "Ouarkoye", "Lanfiéra", "Banh",
   "Kelbo", "Boundore", "Manni", "Bilanga", "Piela"
 ];
-const waLink     = (num, titre) => `https://wa.me/${num}?text=${encodeURIComponent(`Bonjour ! Je suis intéressé(e) par votre annonce "${titre}" sur YoMan!`)}`;
-
 // Compresse une image avant upload : max 1200px, qualité 82%, gain ~70% de taille
 function compressImage(file, maxPx = 1200, quality = 0.82) {
   return new Promise((resolve) => {
@@ -510,6 +510,20 @@ const styles = `
 
   /* ── stitle alias ── */
   .stitle { font-family:'Montserrat',sans-serif; font-size:17px; font-weight:800; color:var(--text); margin:28px 0 12px; }
+
+  /* ── TRUST LAYER ── */
+  .trust-section { background:var(--bg2); border-radius:16px; border:1px solid var(--border2); padding:20px 22px; margin-bottom:20px; }
+  .trust-section-title { font-family:'Montserrat',sans-serif; font-weight:800; font-size:15px; color:var(--text); margin-bottom:14px; }
+  .trust-grid { display:flex; flex-wrap:wrap; gap:16px; }
+  .trust-item { flex:1; min-width:110px; }
+  .trust-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .trust-val { font-weight:700; font-size:14px; color:var(--text); }
+  .verified-badge { display:inline-flex; align-items:center; gap:4px; background:rgba(34,197,94,.12); color:var(--green); border:1px solid rgba(34,197,94,.25); border-radius:8px; padding:3px 10px; font-size:11px; font-weight:800; font-family:'Montserrat',sans-serif; }
+  .report-option { width:100%; margin-bottom:8px; padding:12px 16px; border-radius:12px; border:1.5px solid var(--border2); background:var(--card); color:var(--text); text-align:left; cursor:pointer; font-family:'Inter',sans-serif; font-size:14px; transition:all .2s; }
+  .report-option:hover { border-color:rgba(239,68,68,.3); background:rgba(239,68,68,.06); }
+  .report-option.on { border-color:rgba(239,68,68,.5); background:rgba(239,68,68,.12); color:#f87171; }
+  .hidden-banner { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:#f87171; font-weight:600; }
+  .hidden-card-badge { position:absolute; inset:0; background:rgba(10,10,20,.65); display:flex; align-items:center; justify-content:center; font-size:11px; color:#f87171; font-weight:700; font-family:'Montserrat',sans-serif; border-radius:var(--card-radius); }
 `;
 
 function PhotoUploader({ photos, setPhotos }) {
@@ -631,6 +645,22 @@ export default function YoMan() {
   const [myComment, setMyComment] = useState("");
   const [ratingTarget, setRatingTarget] = useState(null);
 
+  // Trust profile
+  const [userDoc, setUserDoc] = useState(null);
+  const [myRatings, setMyRatings] = useState([]);
+
+  // Phone verification
+  const [phoneStep, setPhoneStep] = useState(null); // null | 'input' | 'code'
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneConfirmResult, setPhoneConfirmResult] = useState(null);
+  const [phoneError, setPhoneError] = useState("");
+  const recaptchaRef = useRef(null);
+
+  // Report modal
+  const [reportModal, setReportModal] = useState(null);
+  const [reportRaison, setReportRaison] = useState("");
+
   // Messagerie
   const [conversations, setConversations] = useState([]);
   const [activeConv, setActiveConv] = useState(null);
@@ -720,6 +750,31 @@ export default function YoMan() {
     };
     load();
   }, [user]);
+
+  // Load Firestore user document (for trust profile: createdAt, phoneVerified)
+  useEffect(() => {
+    if (!user) { setUserDoc(null); return; }
+    const load = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) setUserDoc(snap.data());
+      } catch(e) { console.error(e); }
+    };
+    load();
+  }, [user]);
+
+  // Load own ratings when on profile page
+  useEffect(() => {
+    if (!user || page !== "profile") return;
+    const load = async () => {
+      try {
+        const q = query(collection(db, "ratings"), where("sellerId", "==", user.uid), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        setMyRatings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch(e) { console.error(e); }
+    };
+    load();
+  }, [user, page]);
 
   // Load admin data
   useEffect(() => {
@@ -868,10 +923,11 @@ export default function YoMan() {
         const na = {
           categorie: pCat, titre: pTitre, prix: pPrix + " FCFA",
           ville: pVille, quartier: pQ, description: pDesc,
-          whatsapp: rWa || rTel || user.email,
           vendeur: user.displayName || user.email,
           urgent: pUrg, emoji: catEmojis[pCat],
           userId: user.uid, photos: pPhotos,
+          reportedBy: [], hidden: false,
+          vendeurVerifie: userDoc?.phoneVerified || false,
           createdAt: serverTimestamp()
         };
         const docRef = await addDoc(collection(db, "annonces"), na);
@@ -997,17 +1053,83 @@ export default function YoMan() {
 
   const logout = () => { signOut(auth); setPage("home"); setFavoris([]); };
 
-  const reportAd = async (a) => {
-    const raison = window.prompt("Pourquoi signalez-vous cette annonce ?\n\n1. Fausse annonce\n2. Prix abusif\n3. Contenu inapproprié\n4. Arnaque\n\nEcrivez votre raison :");
-    if (!raison) return;
+  const reportAd = (a) => {
+    if (a.userId === user.uid) return;
+    if (a.reportedBy?.includes(user.uid)) { alert("Vous avez déjà signalé cette annonce."); return; }
+    setReportModal(a);
+    setReportRaison("");
+  };
+
+  const submitReport = async () => {
+    if (!reportRaison || !reportModal) return;
+    const a = reportModal;
     try {
+      const newReportedBy = [...new Set([...(a.reportedBy || []), user.uid])];
+      const updates = { reportedBy: arrayUnion(user.uid) };
+      if (newReportedBy.length >= 3) updates.hidden = true;
+      await updateDoc(doc(db, "annonces", a.id), updates);
       await addDoc(collection(db, "signalements"), {
         annonceId: a.id, titre: a.titre,
-        signalePar: user.uid, raison,
+        signalePar: user.uid, raison: reportRaison,
         createdAt: serverTimestamp()
       });
-      alert("✅ Annonce signalée ! Notre équipe va examiner ça.");
+      setAnnonces(prev => prev.map(x => x.id === a.id ? {
+        ...x, reportedBy: newReportedBy, hidden: newReportedBy.length >= 3
+      } : x));
+      if (newReportedBy.length >= 3) setSelected(null);
+      setReportModal(null);
+      setReportRaison("");
+      alert("✅ Annonce signalée. Notre équipe va examiner ça.");
     } catch(e) { alert("Erreur : " + e.message); }
+  };
+
+  const startPhoneAuth = async () => {
+    setPhoneError("");
+    const num = phoneInput.trim();
+    if (!num || num.length < 8) { setPhoneError("Entrez le numéro avec indicatif. Ex : +22670123456"); return; }
+    try {
+      recaptchaRef.current?.clear?.();
+      const verifier = new RecaptchaVerifier(auth, "recaptcha-phone", { size: "invisible" });
+      recaptchaRef.current = verifier;
+      const result = await linkWithPhoneNumber(auth.currentUser, num, verifier);
+      setPhoneConfirmResult(result);
+      setPhoneStep("code");
+    } catch(e) {
+      if (e.code === "auth/provider-already-linked") {
+        await updateDoc(doc(db, "users", user.uid), { phoneVerified: true });
+        setUserDoc(prev => ({ ...prev, phoneVerified: true }));
+        setPhoneStep(null);
+        alert("✅ Téléphone déjà vérifié !");
+      } else if (e.code === "auth/invalid-phone-number") {
+        setPhoneError("Numéro invalide. Format attendu : +22670123456");
+      } else {
+        setPhoneError("Erreur d'envoi du SMS. Vérifie ta connexion.");
+        console.error(e);
+      }
+    }
+  };
+
+  const confirmPhoneCode = async () => {
+    setPhoneError("");
+    if (!phoneCode || phoneCode.length !== 6) { setPhoneError("Code à 6 chiffres requis."); return; }
+    try {
+      await phoneConfirmResult.confirm(phoneCode);
+      await updateDoc(doc(db, "users", user.uid), { phoneVerified: true });
+      setUserDoc(prev => ({ ...prev, phoneVerified: true }));
+      setPhoneStep(null);
+      setPhoneCode("");
+      setPhoneInput("");
+      alert("✅ Téléphone vérifié !");
+    } catch(e) {
+      if (e.code === "auth/credential-already-in-use") {
+        setPhoneError("Ce numéro est déjà associé à un autre compte.");
+      } else if (e.code === "auth/invalid-verification-code") {
+        setPhoneError("Code incorrect. Réessaie.");
+      } else {
+        setPhoneError("Erreur de vérification.");
+        console.error(e);
+      }
+    }
   };
 
   const openAd = async (a) => {
@@ -1039,6 +1161,7 @@ export default function YoMan() {
 
   const myAds = annonces.filter(a => a.userId === user?.uid);
   const filtered = annonces.filter(a => {
+    if (a.hidden && !isAdmin && a.userId !== user?.uid) return false;
     const mc = catActive === "tous" || (catActive === "favoris" ? favoris.includes(a.id) : a.categorie === catActive);
     const ms = search === "" || [a.titre, a.description, a.ville].some(s => s?.toLowerCase().includes(search.toLowerCase()));
     const mv = filtreVille === "toutes" || a.ville === filtreVille;
@@ -1087,7 +1210,7 @@ export default function YoMan() {
   );
 
   const Footer = () => (
-    <footer className="footer"><strong>YoMan!</strong> &nbsp;·&nbsp; Vente entre particuliers · Burkina Faso · 2026</footer>
+    <footer className="footer"><strong>Jago</strong> &nbsp;·&nbsp; Vente entre particuliers · Zone CFA · 2026</footer>
   );
 
   if (loading) return <div className="loading">⏳</div>;
@@ -1175,6 +1298,59 @@ export default function YoMan() {
           </div>
         </div>
 
+        {/* Trust Profile */}
+        <div className="trust-section">
+          <div className="trust-section-title">🛡️ Profil de confiance</div>
+          <div className="trust-grid">
+            <div className="trust-item">
+              <div className="trust-label">Membre depuis</div>
+              <div className="trust-val">
+                {userDoc?.createdAt?.toDate
+                  ? new Date(userDoc.createdAt.toDate()).toLocaleDateString("fr-FR",{month:"long",year:"numeric"})
+                  : "—"}
+              </div>
+            </div>
+            <div className="trust-item">
+              <div className="trust-label">Note moyenne</div>
+              <div className="trust-val" style={{color: myRatings.length ? "var(--gold)" : "var(--muted)"}}>
+                {myRatings.length ? `⭐ ${avgRating(myRatings)}/5 (${myRatings.length} avis)` : "Nouveau vendeur"}
+              </div>
+            </div>
+            <div className="trust-item">
+              <div className="trust-label">Téléphone</div>
+              {userDoc?.phoneVerified
+                ? <span className="verified-badge">✅ Vérifié</span>
+                : <button className="btn-o" style={{fontSize:12,padding:"5px 12px"}} onClick={() => setPhoneStep("input")}>Vérifier →</button>}
+            </div>
+          </div>
+          {/* Phone verification steps */}
+          {phoneStep === "input" && (
+            <div style={{marginTop:16,borderTop:"1px solid var(--border)",paddingTop:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--text)",marginBottom:8}}>Numéro de téléphone (avec indicatif)</div>
+              <div style={{display:"flex",gap:8}}>
+                <input className="fi" placeholder="+22670123456" value={phoneInput}
+                  onChange={e=>setPhoneInput(e.target.value)} style={{flex:1}}/>
+                <button className="btn-p" onClick={startPhoneAuth}>Envoyer SMS</button>
+              </div>
+              {phoneError && <div style={{fontSize:12,color:"#f87171",marginTop:6}}>{phoneError}</div>}
+              <div id="recaptcha-phone"/>
+            </div>
+          )}
+          {phoneStep === "code" && (
+            <div style={{marginTop:16,borderTop:"1px solid var(--border)",paddingTop:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--text)",marginBottom:8}}>Code reçu par SMS (6 chiffres)</div>
+              <div style={{display:"flex",gap:8}}>
+                <input className="fi" placeholder="123456" value={phoneCode} maxLength={6}
+                  onChange={e=>setPhoneCode(e.target.value)} style={{flex:1}}/>
+                <button className="btn-p" onClick={confirmPhoneCode}>Valider</button>
+              </div>
+              {phoneError && <div style={{fontSize:12,color:"#f87171",marginTop:6}}>{phoneError}</div>}
+              <div style={{fontSize:11,color:"var(--muted)",marginTop:6,cursor:"pointer"}}
+                onClick={()=>setPhoneStep("input")}>← Changer de numéro</div>
+            </div>
+          )}
+        </div>
+
         {/* Stats détaillées */}
         <div className="stats-grid">
           <div className="stat-card"><div className="stat-card-n">{myAds.length}</div><div className="stat-card-l">📋 Annonces</div></div>
@@ -1195,6 +1371,7 @@ export default function YoMan() {
               <div key={a.id} className="card" onClick={() => setSelected(a)}>
                 <div style={{position:"relative"}}>
                   <CardImage annonce={a}/>
+                  {a.hidden && <div className="hidden-card-badge">🚫 Masquée</div>}
                 </div>
                 <div className="cbody">
                   <div className="ctitle">{a.titre}</div>
@@ -1219,7 +1396,7 @@ export default function YoMan() {
       <div className="admin-screen">
         <div className="admin-header">
           <div>
-            <div className="admin-title">🛡️ Panel Admin — YoMan!</div>
+            <div className="admin-title">🛡️ Panel Admin — Jago</div>
             <div className="admin-subtitle">Gestion de la marketplace</div>
           </div>
           <div style={{display:"flex",gap:10}}>
@@ -1443,10 +1620,10 @@ export default function YoMan() {
 
       <div className="sec">
         {/* ── URGENTES ── */}
-        {annonces.filter(a=>a.urgent).length > 0 && <>
+        {annonces.filter(a=>a.urgent && (!a.hidden || isAdmin || a.userId===user?.uid)).length > 0 && <>
           <div className="sec-title">⚡ Urgentes</div>
           <div className="vedettes-scroll">
-            {annonces.filter(a=>a.urgent).slice(0,12).map(a=>(
+            {annonces.filter(a=>a.urgent && (!a.hidden || isAdmin || a.userId===user?.uid)).slice(0,12).map(a=>(
               <div key={a.id} className="vedette-card" onClick={()=>openAd(a)}>
                 <div className="vedette-img">
                   {a.photos?.[0] && <img src={a.photos[0]} alt={a.titre}/>}
@@ -1632,6 +1809,25 @@ export default function YoMan() {
               </div>
               <div className="mdesc">{selected.description}</div>
 
+              {/* Bannière annonce masquée (visible uniquement par l'auteur) */}
+              {selected.hidden && selected.userId === user.uid && (
+                <div className="hidden-banner">⚠️ Cette annonce est masquée (3+ signalements). Elle n'est visible que par vous et les admins.</div>
+              )}
+
+              {/* Vendeur info + badge vérifié */}
+              <div className="seller-box">
+                <div className="seller-avatar">{selected.vendeur?.[0]?.toUpperCase()||"?"}</div>
+                <div>
+                  <div className="seller-name">
+                    {selected.vendeur}
+                    {selected.vendeurVerifie && <span className="verified-badge" style={{marginLeft:8}}>✅ Vérifié</span>}
+                  </div>
+                  <div className="seller-sub">
+                    {selected.userId === user.uid ? "Votre annonce" : `Annonces · Score confiance`}
+                  </div>
+                </div>
+              </div>
+
               {/* NOTATION VENDEUR */}
               <div className="rating-box">
                 <div className="rating-title">⭐ Notation du vendeur</div>
@@ -1670,12 +1866,18 @@ export default function YoMan() {
               </div>
               <div className="macts">
                 <button className="mclose" onClick={() => setSelected(null)}>Fermer</button>
-                <button className="mclose" style={{color:"#f87171",borderColor:"rgba(239,68,68,.4)"}} onClick={()=>reportAd(selected)}>🚩 Signaler</button>
+                {selected.userId !== user.uid && !selected.reportedBy?.includes(user.uid) && (
+                  <button className="mclose" style={{color:"#f87171",borderColor:"rgba(239,68,68,.4)"}}
+                    onClick={()=>reportAd(selected)}>🚩 Signaler</button>
+                )}
+                {selected.userId !== user.uid && selected.reportedBy?.includes(user.uid) && (
+                  <button className="mclose" style={{color:"var(--muted)",opacity:.55,cursor:"not-allowed"}} disabled>✓ Signalé</button>
+                )}
                 <button className="mwa" onClick={()=>startConversation(selected)}>
                   💬 Contacter le vendeur
                 </button>
                 <button className="mwa" style={{background:"rgba(18,140,126,.2)",color:"#34d399",borderColor:"rgba(18,140,126,.4)",flex:1}} onClick={()=>{
-                  const txt = `🛍️ *${selected.titre}*\n💰 ${selected.prix}\n📍 ${selected.quartier}, ${selected.ville}\n\n${selected.description}\n\n👉 YoMan! : https://yomanbf.com`;
+                  const txt = `🛍️ *${selected.titre}*\n💰 ${selected.prix}\n📍 ${selected.quartier}, ${selected.ville}\n\n${selected.description}\n\n👉 Jago : https://jagobf.com`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
                 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
@@ -1686,6 +1888,32 @@ export default function YoMan() {
           </div>
         </div>
       )}
+      {/* Modal de signalement */}
+      {reportModal && (
+        <div className="moverlay" onClick={() => setReportModal(null)}>
+          <div className="modal" style={{maxWidth:360}} onClick={e=>e.stopPropagation()}>
+            <div className="mbody">
+              <div className="mtitle">🚩 Signaler l'annonce</div>
+              <div style={{fontSize:13,color:"var(--muted)",marginBottom:16,lineHeight:1.5}}>{reportModal.titre}</div>
+              {["Fausse annonce","Prix abusif","Contenu inapproprié","Arnaque"].map(r=>(
+                <button key={r} className={`report-option${reportRaison===r?" on":""}`}
+                  onClick={()=>setReportRaison(r)}>
+                  {reportRaison===r?"✓ ":""}{r}
+                </button>
+              ))}
+              <div className="macts" style={{marginTop:16}}>
+                <button className="mclose" onClick={()=>setReportModal(null)}>Annuler</button>
+                <button className="mwa"
+                  style={{background:"rgba(239,68,68,.2)",color:"#f87171",borderColor:"rgba(239,68,68,.4)",opacity:reportRaison?1:.5}}
+                  onClick={submitReport} disabled={!reportRaison}>
+                  🚩 Confirmer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <BottomNav page={page} setPage={setPage} catActive={catActive} setCat={setCat} favoris={favoris} unread={unreadCount}/>
       <Footer/>
     </div>
