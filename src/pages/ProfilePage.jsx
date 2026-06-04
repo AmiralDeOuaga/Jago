@@ -20,6 +20,15 @@ export function ProfilePage({
   Footer,
   OfflineBanner,
   Toast,
+  userDoc,
+  myRatings,
+  avgRating,
+  phoneStep, setPhoneStep,
+  phoneInput, setPhoneInput,
+  phoneCode, setPhoneCode,
+  phoneError,
+  startPhoneAuth,
+  confirmPhoneCode,
 }) {
   const paysInfo = getPays(userPays);
   const [showPays, setShowPays] = useState(false);
@@ -75,6 +84,58 @@ export function ProfilePage({
               <div><div className="psn">{myAds.filter(a=>a.urgent).length}</div><div className="psl">Urgentes</div></div>
             </div>
           </div>
+        </div>
+
+        {/* Profil de confiance */}
+        <div className="trust-section">
+          <div className="trust-section-title">🛡️ Profil de confiance</div>
+          <div className="trust-grid">
+            <div className="trust-item">
+              <div className="trust-label">Membre depuis</div>
+              <div className="trust-val">
+                {userDoc?.createdAt?.toDate
+                  ? new Date(userDoc.createdAt.toDate()).toLocaleDateString("fr-FR",{month:"long",year:"numeric"})
+                  : "—"}
+              </div>
+            </div>
+            <div className="trust-item">
+              <div className="trust-label">Note moyenne</div>
+              <div className="trust-val" style={{color: myRatings?.length ? "var(--gold)" : "var(--muted)"}}>
+                {myRatings?.length ? `⭐ ${avgRating(myRatings)}/5 (${myRatings.length} avis)` : "Nouveau vendeur"}
+              </div>
+            </div>
+            <div className="trust-item">
+              <div className="trust-label">Téléphone</div>
+              {userDoc?.phoneVerified
+                ? <span className="verified-badge">✅ Vérifié</span>
+                : <button className="btn-o" style={{fontSize:12,padding:"5px 12px"}} onClick={() => setPhoneStep("input")}>Vérifier →</button>}
+            </div>
+          </div>
+          {phoneStep === "input" && (
+            <div style={{marginTop:16,borderTop:"1px solid var(--border)",paddingTop:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--text)",marginBottom:8}}>Numéro avec indicatif pays</div>
+              <div style={{display:"flex",gap:8}}>
+                <input className="fi" placeholder="+22670123456" value={phoneInput}
+                  onChange={e=>setPhoneInput(e.target.value)} style={{flex:1}}/>
+                <button className="btn-p" onClick={startPhoneAuth}>Envoyer SMS</button>
+              </div>
+              {phoneError && <div style={{fontSize:12,color:"#f87171",marginTop:6}}>{phoneError}</div>}
+              <div id="recaptcha-phone"/>
+            </div>
+          )}
+          {phoneStep === "code" && (
+            <div style={{marginTop:16,borderTop:"1px solid var(--border)",paddingTop:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--text)",marginBottom:8}}>Code SMS (6 chiffres)</div>
+              <div style={{display:"flex",gap:8}}>
+                <input className="fi" placeholder="123456" value={phoneCode} maxLength={6}
+                  onChange={e=>setPhoneCode(e.target.value)} style={{flex:1}}/>
+                <button className="btn-p" onClick={confirmPhoneCode}>Valider</button>
+              </div>
+              {phoneError && <div style={{fontSize:12,color:"#f87171",marginTop:6}}>{phoneError}</div>}
+              <div style={{fontSize:11,color:"var(--muted)",marginTop:6,cursor:"pointer"}}
+                onClick={()=>setPhoneStep("input")}>← Changer de numéro</div>
+            </div>
+          )}
         </div>
 
         {/* Stats détaillées */}

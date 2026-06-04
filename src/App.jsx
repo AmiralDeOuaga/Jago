@@ -2,9 +2,9 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { db, auth, trackEvent } from "./firebase";
 import {
   collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc,
-  getDoc, setDoc, where, onSnapshot, limit, startAfter
+  getDoc, setDoc, where, onSnapshot, limit, startAfter, arrayUnion
 } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { signOut, RecaptchaVerifier, linkWithPhoneNumber } from "firebase/auth";
 
 import { ADMIN_UID, catEmojis, getPays, getVilles } from "./constants";
 import { Capacitor } from "@capacitor/core";
@@ -209,19 +209,101 @@ export default function Jago() {
   const [signalModal, setSignalModal]   = useState(null);
   const [signalRaison, setSignalRaison] = useState("");
 
-  const reportAd = (a) => { setSignalModal(a); setSignalRaison(""); };
+  const reportAd = (a) => {
+    if (a.userId === user.uid) return;
+    if (a.reportedBy?.includes(user.uid)) { showToast("Vous avez déjà signalé cette annonce.", "warn"); return; }
+    setSignalModal(a); setSignalRaison("");
+  };
 
   const submitReport = async () => {
-    if (!signalRaison) return;
+    if (!signalRaison || !signalModal) return;
+    const a = signalModal;
     try {
+      const newReportedBy = [...new Set([...(a.reportedBy || []), user.uid])];
+      const updates = { reportedBy: arrayUnion(user.uid) };
+      if (newReportedBy.length >= 3) updates.hidden = true;
+      await updateDoc(doc(db, "annonces", a.id), updates);
       await addDoc(collection(db, "signalements"), {
-        annonceId: signalModal.id, titre: signalModal.titre,
+        annonceId: a.id, titre: a.titre,
         signalePar: user.uid, raison: signalRaison,
         createdAt: serverTimestamp()
       });
+      setAnnonces(prev => prev.map(x => x.id === a.id ? {
+        ...x, reportedBy: newReportedBy, hidden: newReportedBy.length >= 3
+      } : x));
+      if (newReportedBy.length >= 3) setSelected(null);
       setSignalModal(null);
       setSignalRaison("");
-    } catch(e) { console.error(e); }
+      showToast("Annonce signalée. Notre équipe va examiner ça.");
+    } catch(e) { showToast("Erreur : " + e.message, "error"); }
+  };
+
+  // ── Trust profile / Phone Auth ─────────────────────────────
+  const [userDoc, setUserDoc]               = useState(null);
+  const [myRatings, setMyRatings]           = useState([]);
+  const [phoneStep, setPhoneStep]           = useState(null);
+  const [phoneInput, setPhoneInput]         = useState("");
+  const [phoneCode, setPhoneCode]           = useState("");
+  const [phoneConfirmResult, setPhoneConfirmResult] = useState(null);
+  const [phoneError, setPhoneError]         = useState("");
+  const recaptchaRef                        = useRef(null);
+
+  useEffect(() => {
+    if (!user) { setUserDoc(null); return; }
+    getDoc(doc(db, "users", user.uid)).then(snap => {
+      if (snap.exists()) setUserDoc(snap.data());
+    }).catch(console.error);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || page !== "profile") return;
+    getDocs(query(collection(db, "ratings"), where("sellerId", "==", user.uid), orderBy("createdAt", "desc")))
+      .then(snap => setMyRatings(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(console.error);
+  }, [user, page]);
+
+  const startPhoneAuth = async () => {
+    setPhoneError("");
+    const num = phoneInput.trim();
+    if (!num || num.length < 8) { setPhoneError("Format attendu : +22670123456"); return; }
+    try {
+      recaptchaRef.current?.clear?.();
+      const verifier = new RecaptchaVerifier(auth, "recaptcha-phone", { size: "invisible" });
+      recaptchaRef.current = verifier;
+      const result = await linkWithPhoneNumber(auth.currentUser, num, verifier);
+      setPhoneConfirmResult(result);
+      setPhoneStep("code");
+    } catch(e) {
+      if (e.code === "auth/provider-already-linked") {
+        await updateDoc(doc(db, "users", user.uid), { phoneVerified: true });
+        setUserDoc(prev => ({ ...prev, phoneVerified: true }));
+        setPhoneStep(null);
+        showToast("Téléphone vérifié !");
+      } else if (e.code === "auth/invalid-phone-number") {
+        setPhoneError("Numéro invalide. Format : +22670123456");
+      } else { setPhoneError("Erreur d'envoi du SMS."); console.error(e); }
+    }
+  };
+
+  const confirmPhoneCode = async () => {
+    setPhoneError("");
+    if (!phoneCode || phoneCode.length !== 6) { setPhoneError("Code à 6 chiffres requis."); return; }
+    try {
+      await phoneConfirmResult.confirm(phoneCode);
+      await updateDoc(doc(db, "users", user.uid), { phoneVerified: true });
+      setUserDoc(prev => ({ ...prev, phoneVerified: true }));
+      setPhoneStep(null); setPhoneCode(""); setPhoneInput("");
+      showToast("✅ Téléphone vérifié !");
+    } catch(e) {
+      if (e.code === "auth/credential-already-in-use") setPhoneError("Ce numéro est déjà associé à un autre compte.");
+      else if (e.code === "auth/invalid-verification-code") setPhoneError("Code incorrect. Réessaie.");
+      else { setPhoneError("Erreur de vérification."); console.error(e); }
+    }
+  };
+
+  const avgRating = (rList) => {
+    if (!rList.length) return 0;
+    return (rList.reduce((s, r) => s + r.note, 0) / rList.length).toFixed(1);
   };
 
   // ── Post ───────────────────────────────────────────────────
@@ -279,11 +361,12 @@ export default function Jago() {
         const na = {
           categorie: pCat, titre: pTitre, prix: pPrix + " FCFA",
           ville: pVille, quartier: pQ, description: pDesc,
-          whatsapp: rWa || rTel || user.email,
           vendeur: user.displayName || user.email,
           urgent: pUrg, emoji: catEmojis[pCat],
           pays: userPays,
           userId: user.uid, photos: pPhotos,
+          reportedBy: [], hidden: false,
+          vendeurVerifie: userDoc?.phoneVerified || false,
           createdAt: serverTimestamp()
         };
         const docRef = await addDoc(collection(db, "annonces"), na);
@@ -435,11 +518,6 @@ export default function Jago() {
     } catch(e) { showToast("Erreur : " + e.message, "error"); }
   };
 
-  const avgRating = (rList) => {
-    if (!rList.length) return 0;
-    return (rList.reduce((s, r) => s + r.note, 0) / rList.length).toFixed(1);
-  };
-
   // ── Filtres / Pagination ───────────────────────────────────
   const [filtreVille, setFiltreVille]     = useState("toutes");
   const [filtrePrixMin, setFiltrePrixMin] = useState("");
@@ -451,6 +529,7 @@ export default function Jago() {
   const myAds = useMemo(() => annonces.filter(a => a.userId === user?.uid), [annonces, user]);
 
   const filtered = useMemo(() => annonces.filter(a => {
+    if (a.hidden && !isAdmin && a.userId !== user?.uid) return false;
     const aPays = a.pays || "bf";
     if (aPays !== userPays) return false;
     const mc = catActive === "tous" || (catActive === "favoris" ? favoris.includes(a.id) : a.categorie === catActive);
@@ -809,6 +888,15 @@ export default function Jago() {
       setPage={setPage}
       Header={Header} Footer={Footer}
       OfflineBanner={OfflineBanner} Toast={Toast}
+      userDoc={userDoc}
+      myRatings={myRatings}
+      avgRating={avgRating}
+      phoneStep={phoneStep} setPhoneStep={setPhoneStep}
+      phoneInput={phoneInput} setPhoneInput={setPhoneInput}
+      phoneCode={phoneCode} setPhoneCode={setPhoneCode}
+      phoneError={phoneError}
+      startPhoneAuth={startPhoneAuth}
+      confirmPhoneCode={confirmPhoneCode}
     />
   );
 
