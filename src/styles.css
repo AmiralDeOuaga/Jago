@@ -600,3 +600,12 @@ option { background:var(--surface); color:var(--text); }
 /* ── REVEAL animation ── */
 .reveal { opacity:0; transform:translateY(28px); transition:opacity .6s ease, transform .6s ease; }
 .reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ── TRUST LAYER ── */
+.trust-section { background:var(--surface); border-radius:16px; border:1px solid var(--line); padding:20px 22px; margin-bottom:20px; }
+.trust-section-title { font-family:'Montserrat',sans-serif; font-weight:800; font-size:15px; color:var(--dark); margin-bottom:14px; }
+.trust-grid { display:flex; flex-wrap:wrap; gap:16px; }
+.trust-item { flex:1; min-width:110px; }
+.trust-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; font-weight:700; }
+.trust-val { font-weight:700; font-size:14px; color:var(--dark); }
+.verified-badge { display:inline-flex; align-items:center; gap:4px; background:rgba(34,197,94,.12); color:#16a34a; border:1px solid rgba(34,197,94,.3); border-radius:8px; padding:3px 10px; font-size:11px; font-weight:800; font-family:'Montserrat',sans-serif; }

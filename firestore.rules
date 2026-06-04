@@ -19,8 +19,21 @@ service cloud.firestore {
     // Annonces — lecture publique pour que les non-connectés puissent voir
     match /annonces/{annonceId} {
       allow read: if true;
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Création : whatsapp interdit dans le document (stocké dans users/ uniquement)
+      allow create: if isAuth()
+                    && !('whatsapp' in request.resource.data);
+
+      // Mise à jour : l'auteur peut tout modifier sauf remettre hidden=false après masquage auto.
+      // N'importe quel user authentifié peut ajouter son UID dans reportedBy et déclencher hidden=true.
+      allow update: if isAuth() && (
+        (resource.data.userId == request.auth.uid
+          && !(request.resource.data.hidden == false && resource.data.hidden == true))
+        || isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportedBy', 'hidden'])
+      );
+
+      allow delete: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Conversations
