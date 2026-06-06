@@ -82,7 +82,7 @@ a { text-decoration:none; color:inherit; }
 
 /* ── APP WRAPPER ── */
 .app { min-height:100vh; padding-bottom:72px; }
-@media(min-width:768px){ .app{ padding-bottom:0; } }
+@media(min-width:1025px){ .app{ padding-bottom:0; } }
 
 /* ── HEADER ── */
 .hdr {
@@ -137,7 +137,7 @@ a { text-decoration:none; color:inherit; }
 
 /* ── BOTTOM NAV ── */
 .bottom-nav { display:none; }
-@media(max-width:767px){
+@media(max-width:1024px){
   .bottom-nav { display:flex; position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(16px); border-top:1px solid var(--line); z-index:99; }
   .hdr-mobile-hide { display:none !important; }
   .hdr-in { padding:0 12px !important; min-height:56px !important; }
